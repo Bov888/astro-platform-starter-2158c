@@ -1,0 +1,362 @@
+---
+// src/pages/index.astro
+// Статична сторінка: усе працює в браузері, дані зберігаються в localStorage.
+const LAT = 48.2417; // Тюдів (Google Maps)
+const LON = 25.1284;
+---
+
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Родинна дошка</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Onest:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body data-lat={LAT} data-lon={LON}>
+    <header class="top">
+      <h1>Родинна дошка</h1>
+      <p id="today"></p>
+    </header>
+
+    <main class="board">
+      <!-- 1. Задачі -->
+      <section class="col" aria-labelledby="h-tasks">
+        <h2 id="h-tasks">Задачі</h2>
+
+        <form id="task-form" class="task-form">
+          <input id="task-text" type="text" placeholder="Нова задача" required maxlength="140" />
+          <div class="row">
+            <select id="task-person" aria-label="Кому"></select>
+            <select id="task-priority" aria-label="Пріоритет">
+              <option value="1">Високий</option>
+              <option value="2" selected>Середній</option>
+              <option value="3">Низький</option>
+            </select>
+            <button type="submit" class="btn">Додати</button>
+          </div>
+        </form>
+
+        <div id="filters" class="filters" role="group" aria-label="Фільтр за людиною"></div>
+        <ul id="task-list" class="task-list"></ul>
+      </section>
+
+      <!-- 2. Нотатки -->
+      <section class="col" aria-labelledby="h-notes">
+        <h2 id="h-notes">Нотатки</h2>
+        <textarea id="notes" placeholder="Купити, не забути, ідеї…" aria-label="Нотатки"></textarea>
+        <p id="notes-state" class="muted small" aria-live="polite"></p>
+      </section>
+
+      <!-- 3. Погода -->
+      <section class="col" aria-labelledby="h-weather">
+        <h2 id="h-weather">Погода на 7 днів</h2>
+        <ul id="weather" class="weather"><li class="muted">Завантаження…</li></ul>
+      </section>
+    </main>
+
+    <style is:global>
+      :root {
+        --bg: #e8eeea;
+        --surface: #f8faf8;
+        --ink: #1b2b27;
+        --muted: #5a6c66;
+        --line: #c7d2cc;
+        --spruce: #24473d;
+        --sunset: #c2561f;
+        --p1: #b3402f;
+        --p2: #cf9626;
+        --p3: #5b8a72;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        padding: 20px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 400 15px/1.45 "Onest", system-ui, sans-serif;
+      }
+      h1, h2 { font-family: "Literata", Georgia, serif; margin: 0; }
+      h1 { font-size: 28px; }
+      h2 { font-size: 20px; margin-bottom: 14px; }
+      .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .top p { margin: 0; color: var(--muted); }
+      .muted { color: var(--muted); }
+      .small { font-size: 13px; }
+
+      .board {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .col {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+
+      input, select, textarea, button { font: inherit; color: inherit; }
+      input, select, textarea {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      :focus-visible { outline: 2px solid var(--spruce); outline-offset: 2px; }
+      .btn {
+        background: var(--spruce);
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 14px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn:hover { background: #1a352d; }
+
+      /* Задачі */
+      .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+      .task-form .row { display: flex; gap: 8px; }
+      .task-form select { flex: 1; min-width: 0; }
+      .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+      .chip {
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 999px;
+        padding: 3px 12px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .chip[aria-pressed="true"] { background: var(--spruce); border-color: var(--spruce); color: #fff; }
+
+      .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+      .task {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        padding: 10px 10px 10px 14px;
+        margin-bottom: 8px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--p2);
+        border-radius: 6px;
+      }
+      .task[data-p="1"] { border-left-color: var(--p1); }
+      .task[data-p="3"] { border-left-color: var(--p3); }
+      .task .text { font-weight: 500; overflow-wrap: anywhere; }
+      .task .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+      .task[data-s="done"] .text { text-decoration: line-through; color: var(--muted); }
+      .task[data-s="done"] { opacity: .7; }
+      .status {
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .task[data-s="doing"] .status { background: #f3e2bd; border-color: var(--p2); }
+      .task[data-s="done"] .status { background: #cfe3d8; border-color: var(--p3); }
+      .del {
+        border: 0; background: none; cursor: pointer; color: var(--muted);
+        font-size: 18px; line-height: 1; padding: 0 4px;
+      }
+      .del:hover { color: var(--p1); }
+      .empty { color: var(--muted); padding: 8px 0; }
+
+      /* Нотатки */
+      #notes { flex: 1; min-height: 160px; resize: none; line-height: 1.55; }
+      #notes-state { margin: 8px 0 0; min-height: 1.4em; }
+
+      /* Погода */
+      .weather { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+      .day {
+        display: grid;
+        grid-template-columns: 62px 34px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .day:last-child { border-bottom: 0; }
+      .day .name { font-weight: 600; }
+      .day .ico { font-size: 24px; text-align: center; }
+      .day .desc { font-size: 14px; }
+      .day .sub { font-size: 12.5px; color: var(--muted); }
+      .day .temp { text-align: right; font-weight: 600; white-space: nowrap; }
+      .day .temp span { color: var(--muted); font-weight: 400; }
+      .sun { color: var(--sunset); font-weight: 600; }
+
+      @media (max-width: 960px) {
+        html, body { height: auto; }
+        body { padding: 14px; }
+        .board { grid-template-columns: 1fr; }
+        .col { min-height: 320px; }
+        .task-list, .weather { overflow: visible; }
+        #notes { min-height: 240px; }
+      }
+    </style>
+
+    <script is:inline>
+      const PEOPLE = ["Олександр", "Людмила", "Максим", "Антоніна"];
+      const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
+      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
+      const NEXT = { todo: "doing", doing: "done", done: "todo" };
+      const KEY_TASKS = "family.tasks.v1";
+      const KEY_NOTES = "family.notes.v1";
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const load = (k, fallback) => {
+        try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; }
+      };
+      const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+      /* ---------- Дата ---------- */
+      $("today").textContent = new Date().toLocaleDateString("uk-UA", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+      });
+
+      /* ---------- Задачі ---------- */
+      let tasks = load(KEY_TASKS, []);
+      let filter = "all";
+
+      $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
+
+      function renderFilters() {
+        const items = ["all", ...PEOPLE];
+        $("filters").innerHTML = items
+          .map((p) => `<button type="button" class="chip" data-f="${p}" aria-pressed="${p === filter}">${p === "all" ? "Усі" : p}</button>`)
+          .join("");
+      }
+
+      function renderTasks() {
+        const visible = tasks
+          .filter((t) => filter === "all" || t.person === filter)
+          .sort((a, b) => (a.status === "done") - (b.status === "done") || a.priority - b.priority || a.id - b.id);
+
+        $("task-list").innerHTML = visible.length
+          ? visible.map((t) => `
+            <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
+              <span class="text">${esc(t.text)}</span>
+              <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
+              <div class="meta">
+                <strong>${esc(t.person)}</strong>
+                <span>${PRIORITIES[t.priority]} пріоритет</span>
+                <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
+              </div>
+            </li>`).join("")
+          : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
+      }
+
+      $("task-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = $("task-text").value.trim();
+        if (!text) return;
+        tasks.push({
+          id: Date.now(),
+          text,
+          person: $("task-person").value,
+          priority: Number($("task-priority").value),
+          status: "todo",
+        });
+        save(KEY_TASKS, tasks);
+        $("task-text").value = "";
+        renderTasks();
+      });
+
+      $("task-list").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const id = Number(btn.closest(".task").dataset.id);
+        if (btn.dataset.act === "del") tasks = tasks.filter((t) => t.id !== id);
+        else { const t = tasks.find((t) => t.id === id); t.status = NEXT[t.status]; }
+        save(KEY_TASKS, tasks);
+        renderTasks();
+      });
+
+      $("filters").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-f]");
+        if (!b) return;
+        filter = b.dataset.f;
+        renderFilters();
+        renderTasks();
+      });
+
+      renderFilters();
+      renderTasks();
+
+      /* ---------- Нотатки ---------- */
+      const notes = $("notes");
+      notes.value = load(KEY_NOTES, "");
+      let notesTimer;
+      notes.addEventListener("input", () => {
+        $("notes-state").textContent = "Збереження…";
+        clearTimeout(notesTimer);
+        notesTimer = setTimeout(() => {
+          save(KEY_NOTES, notes.value);
+          $("notes-state").textContent = "Збережено";
+        }, 400);
+      });
+
+      /* ---------- Погода (Open-Meteo, без ключа) ---------- */
+      const WMO = (c) => {
+        if (c === 0) return ["☀️", "Ясно"];
+        if (c <= 2) return ["🌤️", "Мінлива хмарність"];
+        if (c === 3) return ["☁️", "Хмарно"];
+        if (c <= 48) return ["🌫️", "Туман"];
+        if (c <= 57) return ["🌦️", "Мряка"];
+        if (c <= 67) return ["🌧️", "Дощ"];
+        if (c <= 77) return ["🌨️", "Сніг"];
+        if (c <= 82) return ["🌧️", "Злива"];
+        if (c <= 86) return ["🌨️", "Снігопад"];
+        return ["⛈️", "Гроза"];
+      };
+
+      async function loadWeather() {
+        const { lat, lon } = document.body.dataset;
+        const url =
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunset` +
+          `&timezone=Europe%2FKyiv&forecast_days=7`;
+        try {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(r.status);
+          const d = (await r.json()).daily;
+          $("weather").innerHTML = d.time.map((date, i) => {
+            const [ico, desc] = WMO(d.weather_code[i]);
+            const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
+            return `
+              <li class="day">
+                <span class="name">${name}</span>
+                <span class="ico" aria-hidden="true">${ico}</span>
+                <span>
+                  <span class="desc">${desc}</span><br />
+                  <span class="sub">опади ${d.precipitation_probability_max[i] ?? 0}% · <span class="sun">захід ${d.sunset[i].slice(11, 16)}</span></span>
+                </span>
+                <span class="temp">${Math.round(d.temperature_2m_max[i])}° <span>${Math.round(d.temperature_2m_min[i])}°</span></span>
+              </li>`;
+          }).join("");
+        } catch {
+          $("weather").innerHTML = `<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>`;
+        }
+      }
+      loadWeather();
+    </script>
+  </body>
+</html>
