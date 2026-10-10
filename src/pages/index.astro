@@ -1,3 +1,4 @@
+
 ---
 const SB_URL = "https://mlkdphygsdfcanztbtez.supabase.co";
 const SB_KEY = "sb_publishable_yodMR9SylDv9tF51Y7q43A_sqak1u8o";
@@ -426,75 +427,4 @@ const LON = 25.14227;
       .hr .tmp { font-weight: 600; }
       .hr .pr, .hr .wd { color: var(--muted); }
       .hr .wd { text-align: right; white-space: nowrap; }
-      .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px; font-weight: 600; }
-
-      @media (max-width: 960px) {
-        html, body { height: auto; }
-        body { padding: 12px; }
-        .board { grid-template-columns: 1fr; }
-        .col { min-height: 320px; }
-        .task-list, .note-list { overflow: visible; }
-        .weather { overflow: visible; grid-auto-rows: auto; }
-        .day { padding: 8px 6px; }
-      }
-    </style>
-
-    <script is:inline>
-      const PEOPLE = ["Олександр", "Людмила", "Максим", "Антоніна"];
-      const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
-      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
-      const NEXT = { todo: "doing", doing: "done", done: "todo" };
-      const T_TASKS = "family_tasks";
-      const T_NOTES = "family_note_items";
-
-      const $ = (id) => document.getElementById(id);
-      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-      const check = ({ error }) => { if (error) throw error; };
-
-      const { sbUrl, sbKey } = document.body.dataset;
-      const sb = supabase.createClient(sbUrl, sbKey);
-
-      /* ---------- Тема ---------- */
-      const themeBtn = $("theme");
-      const setTheme = (t) => {
-        document.documentElement.dataset.theme = t;
-        themeBtn.textContent = t === "dark" ? "Світла тема" : "Темна тема";
-      };
-      setTheme(document.documentElement.dataset.theme || "light");
-      themeBtn.addEventListener("click", () => {
-        const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-        try { localStorage.setItem("family.theme", t); } catch {}
-        setTheme(t);
-      });
-
-      /* ---------- Дата та повідомлення ---------- */
-      $("today").textContent = new Date().toLocaleDateString("uk-UA", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-      });
-
-      let msgTimer;
-      function showMsg(text) {
-        $("msg").textContent = text;
-        clearTimeout(msgTimer);
-        if (text) msgTimer = setTimeout(() => ($("msg").textContent = ""), 5000);
-      }
-
-      /* ---------- Вхід ---------- */
-      let loggedIn = false;
-      let tasks = [];
-      let filter = "all";
-      let notes = [];
-      let noteQuery = "";
-      let editingId = null;
-
-      function setAuthUi(on) {
-        loggedIn = on;
-        $("login").hidden = on;
-        $("logout").hidden = !on;
-      }
-
-      async function init() {
-        const { data } = await sb.auth.getSession();
-        setAuthUi(!!data.session);
-        if (data.session) syncAll();
-      }
+      .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px;
