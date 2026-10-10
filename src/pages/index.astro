@@ -57,10 +57,7 @@
           </div>
         </form>
 
-        <div class="filters-group">
-          <div id="filters-person" class="filters" role="group" aria-label="Фільтр за людиною"></div>
-          <div id="filters-status" class="filters" role="group" aria-label="Фільтр за статусом"></div>
-        </div>
+        <div id="filters" class="filters" role="group" aria-label="Фільтр за людиною"></div>
         <ul id="task-list" class="task-list"></ul>
       </section>
 
@@ -154,6 +151,7 @@
       }
       * { box-sizing: border-box; }
       
+      /* Адаптивна висота для мобільних екранів (100dvh) */
       html, body { height: 100%; height: 100dvh; }
       body {
         margin: 0;
@@ -170,6 +168,7 @@
       h1 { font-size: 22px; }
       h2 { font-size: 18px; margin-bottom: 10px; }
       
+      /* Оновлена шапка */
       .top { display: flex; flex-direction: column; gap: 10px; }
       .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
       .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -259,9 +258,7 @@
       .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
       .task-form .row { display: flex; gap: 8px; }
       .task-form select { flex: 1; min-width: 0; }
-      
-      .filters-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-      .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+      .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
       .chip {
         border: 1px solid var(--line); background: transparent;
         border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13px;
@@ -292,26 +289,6 @@
       }
       .del:hover { color: var(--p1); }
       .empty { color: var(--muted); padding: 8px 0; }
-      
-      /* Розділювач виконаних задач */
-      .divider {
-        text-align: center;
-        font-size: 12px;
-        color: var(--muted);
-        margin: 16px 0 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .divider::before, .divider::after {
-        content: "";
-        display: inline-block;
-        width: 30px;
-        height: 1px;
-        background: var(--line);
-        vertical-align: middle;
-        margin: 0 8px;
-      }
 
       /* Нотатки */
       .note-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
@@ -392,25 +369,35 @@
       @media (max-width: 960px) {
         body { padding: 12px; }
         .mobile-tabs {
-          display: flex; background: var(--surface); padding: 4px;
-          border-radius: 8px; border: 1px solid var(--line); gap: 4px;
+          display: flex;
+          background: var(--surface);
+          padding: 4px;
+          border-radius: 8px;
+          border: 1px solid var(--line);
+          gap: 4px;
         }
         .tab-btn {
-          flex: 1; background: transparent; border: none; padding: 8px 0;
-          border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600;
-          color: var(--muted); font-size: 14px; transition: background-color 0.2s, color 0.2s;
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 8px 0;
+          border-radius: 6px;
+          cursor: pointer;
+          font-family: inherit;
+          font-weight: 600;
+          color: var(--muted);
+          font-size: 14px;
+          transition: background-color 0.2s, color 0.2s;
         }
-        .tab-btn.active { background: var(--field); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .tab-btn.active {
+          background: var(--field);
+          color: var(--ink);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
         
-        /* Вирішуємо проблему з обрізанням в горизонтальному положенні */
-        .board { display: flex; flex-direction: column; min-height: 0; }
-        
-        /* Робимо так, щоб прокручувалася вся колонка цілком (з формою і заголовком) */
-        .col { display: none; flex: 1; overflow-y: auto; padding-bottom: 24px; }
-        .col.active { display: block; }
-        
-        /* Дозволяємо спискам розтягуватись всередині колонки */
-        .task-list, .note-list, .weather { overflow: visible; height: auto; }
+        .board { display: flex; }
+        .col { display: none; flex: 1; }
+        .col.active { display: flex; }
         .day { padding: 8px 6px; }
       }
     </style>
@@ -441,8 +428,11 @@
       
       tabs.forEach(tab => {
         tab.addEventListener("click", () => {
+          // Знімаємо клас active з усіх кнопок та колонок
           tabs.forEach(t => t.classList.remove("active"));
           cols.forEach(c => c.classList.remove("active"));
+          
+          // Додаємо active на вибрану кнопку і відповідну їй колонку
           tab.classList.add("active");
           $(tab.dataset.target).classList.add("active");
         });
@@ -476,8 +466,7 @@
       /* ---------- Вхід ---------- */
       let loggedIn = false;
       let tasks = [];
-      let personFilter = "all";
-      let statusFilter = "all";
+      let filter = "all";
       let notes = [];
       let noteQuery = "";
       let editingId = null;
@@ -519,57 +508,29 @@
       $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
 
       function renderFilters() {
-        const pItems = ["all", ...PEOPLE];
-        $("filters-person").innerHTML = pItems
-          .map((p) => `<button type="button" class="chip" data-fp="${p}" aria-pressed="${p === personFilter}">${p === "all" ? "Всі люди" : p}</button>`)
-          .join("");
-
-        const sItems = [
-          { k: "all", v: "Всі статуси" },
-          { k: "todo", v: "До виконання" },
-          { k: "doing", v: "В роботі" },
-          { k: "done", v: "Готово" }
-        ];
-        $("filters-status").innerHTML = sItems
-          .map((s) => `<button type="button" class="chip" data-fs="${s.k}" aria-pressed="${s.k === statusFilter}">${s.v}</button>`)
+        const items = ["all", ...PEOPLE];
+        $("filters").innerHTML = items
+          .map((p) => `<button type="button" class="chip" data-f="${p}" aria-pressed="${p === filter}">${p === "all" ? "Усі" : p}</button>`)
           .join("");
       }
 
-      const taskHtml = (t) => `
-        <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
-          <span class="text">${esc(t.text)}</span>
-          <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
-          <div class="meta">
-            <strong>${esc(t.person)}</strong>
-            <span class="sr">Пріоритет: ${PRIORITIES[t.priority]}</span>
-            <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
-          </div>
-        </li>`;
-
       function renderTasks() {
-        const visible = tasks.filter((t) => 
-          (personFilter === "all" || t.person === personFilter) &&
-          (statusFilter === "all" || t.status === statusFilter)
-        );
+        const visible = tasks
+          .filter((t) => filter === "all" || t.person === filter)
+          .sort((a, b) => (a.status === "done") - (b.status === "done") || a.priority - b.priority || a.id - b.id);
 
-        const activeTasks = visible
-          .filter((t) => t.status !== "done")
-          .sort((a, b) => a.priority - b.priority || a.id - b.id);
-          
-        const doneTasks = visible
-          .filter((t) => t.status === "done")
-          .sort((a, b) => a.priority - b.priority || b.id - a.id);
-
-        let html = "";
-        if (activeTasks.length) {
-          html += activeTasks.map(taskHtml).join("");
-        }
-        if (doneTasks.length) {
-          if (activeTasks.length) html += `<li class="divider">Виконані</li>`;
-          html += doneTasks.map(taskHtml).join("");
-        }
-
-        $("task-list").innerHTML = html || `<li class="empty">Задач немає.</li>`;
+        $("task-list").innerHTML = visible.length
+          ? visible.map((t) => `
+            <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
+              <span class="text">${esc(t.text)}</span>
+              <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
+              <div class="meta">
+                <strong>${esc(t.person)}</strong>
+                <span class="sr">Пріоритет: ${PRIORITIES[t.priority]}</span>
+                <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
+              </div>
+            </li>`).join("")
+          : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
       }
 
       async function refreshTasks() {
@@ -616,15 +577,9 @@
         }
       });
 
-      $("filters-person").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fp]");
-        if (!b) return; personFilter = b.dataset.fp;
-        renderFilters(); renderTasks();
-      });
-      
-      $("filters-status").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fs]");
-        if (!b) return; statusFilter = b.dataset.fs;
+      $("filters").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-f]");
+        if (!b) return; filter = b.dataset.f;
         renderFilters(); renderTasks();
       });
 
