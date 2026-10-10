@@ -1,11 +1,3 @@
-
----
-const SB_URL = "https://mlkdphygsdfcanztbtez.supabase.co";
-const SB_KEY = "sb_publishable_yodMR9SylDv9tF51Y7q43A_sqak1u8o";
-const LAT = 48.24872; // Тюдів
-const LON = 25.14227;
----
-
 <!doctype html>
 <html lang="uk">
   <head>
@@ -28,7 +20,7 @@ const LON = 25.14227;
     />
     <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
   </head>
-  <body data-lat={LAT} data-lon={LON} data-sb-url={SB_URL} data-sb-key={SB_KEY}>
+  <body>
     <header class="top">
       <h1>Родинна дошка</h1>
       <div class="tools">
@@ -427,4 +419,489 @@ const LON = 25.14227;
       .hr .tmp { font-weight: 600; }
       .hr .pr, .hr .wd { color: var(--muted); }
       .hr .wd { text-align: right; white-space: nowrap; }
-      .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px;
+      .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px; font-weight: 600; }
+
+      @media (max-width: 960px) {
+        html, body { height: auto; }
+        body { padding: 12px; }
+        .board { grid-template-columns: 1fr; }
+        .col { min-height: 320px; }
+        .task-list, .note-list { overflow: visible; }
+        .weather { overflow: visible; grid-auto-rows: auto; }
+        .day { padding: 8px 6px; }
+      }
+    </style>
+
+    <script is:inline>
+      /* ВАШІ НАЛАШТУВАННЯ ТЕПЕР ТУТ */
+      const SB_URL = "https://mlkdphygsdfcanztbtez.supabase.co";
+      const SB_KEY = "sb_publishable_yodMR9SylDv9tF51Y7q43A_sqak1u8o";
+      const LAT = 48.24872; // Тюдів
+      const LON = 25.14227;
+      const PEOPLE = ["Олександр", "Людмила", "Максим", "Антоніна"];
+
+      const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
+      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
+      const NEXT = { todo: "doing", doing: "done", done: "todo" };
+      const T_TASKS = "family_tasks";
+      const T_NOTES = "family_note_items";
+
+      const $ = (id) => document.getElementById(id);
+      
+      // Захищена функція екранування (змінено кодування спецсимволів для безпеки Astro)
+      const esc = (s) => String(s).replace(/[&\x3C\x3E"']/g, (c) => ({ "&": "&amp;", "\x3C": "&lt;", "\x3E": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      
+      const check = ({ error }) => { if (error) throw error; };
+
+      const sb = supabase.createClient(SB_URL, SB_KEY);
+
+      /* ---------- Тема ---------- */
+      const themeBtn = $("theme");
+      const setTheme = (t) => {
+        document.documentElement.dataset.theme = t;
+        themeBtn.textContent = t === "dark" ? "Світла тема" : "Темна тема";
+      };
+      setTheme(document.documentElement.dataset.theme || "light");
+      themeBtn.addEventListener("click", () => {
+        const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        try { localStorage.setItem("family.theme", t); } catch {}
+        setTheme(t);
+      });
+
+      /* ---------- Дата та повідомлення ---------- */
+      $("today").textContent = new Date().toLocaleDateString("uk-UA", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+      });
+
+      let msgTimer;
+      function showMsg(text) {
+        $("msg").textContent = text;
+        clearTimeout(msgTimer);
+        if (text) msgTimer = setTimeout(() => ($("msg").textContent = ""), 5000);
+      }
+
+      /* ---------- Вхід ---------- */
+      let loggedIn = false;
+      let tasks = [];
+      let filter = "all";
+      let notes = [];
+      let noteQuery = "";
+      let editingId = null;
+
+      function setAuthUi(on) {
+        loggedIn = on;
+        $("login").hidden = on;
+        $("logout").hidden = !on;
+      }
+
+      async function init() {
+        const { data } = await sb.auth.getSession();
+        setAuthUi(!!data.session);
+        if (data.session) syncAll();
+      }
+
+      $("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        $("login-err").textContent = "";
+        const { error } = await sb.auth.signInWithPassword({
+          email: $("email").value.trim(),
+          password: $("password").value,
+        });
+        if (error) { $("login-err").textContent = "Невірний email або пароль"; return; }
+        $("password").value = "";
+        init();
+      });
+
+      $("logout").addEventListener("click", () => sb.auth.signOut());
+
+      sb.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") {
+          tasks = [];
+          notes = [];
+          editingId = null;
+          renderTasks();
+          renderNotes();
+          setAuthUi(false);
+        }
+      });
+
+      /* ---------- Задачі ---------- */
+      $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
+
+      function renderFilters() {
+        const items = ["all", ...PEOPLE];
+        $("filters").innerHTML = items
+          .map((p) => `<button type="button" class="chip" data-f="${p}" aria-pressed="${p === filter}">${p === "all" ? "Усі" : p}</button>`)
+          .join("");
+      }
+
+      function renderTasks() {
+        const visible = tasks
+          .filter((t) => filter === "all" || t.person === filter)
+          .sort((a, b) => (a.status === "done") - (b.status === "done") || a.priority - b.priority || a.id - b.id);
+
+        $("task-list").innerHTML = visible.length
+          ? visible.map((t) => `
+            <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
+              <span class="text">${esc(t.text)}</span>
+              <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
+              <div class="meta">
+                <strong>${esc(t.person)}</strong>
+                <span class="sr">Пріоритет: ${PRIORITIES[t.priority]}</span>
+                <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
+              </div>
+            </li>`).join("")
+          : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
+      }
+
+      async function refreshTasks() {
+        const { data, error } = await sb.from(T_TASKS).select("*").order("id");
+        if (error) { showMsg("Не вдалося завантажити задачі"); return; }
+        tasks = data;
+        renderTasks();
+      }
+
+      $("task-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const text = $("task-text").value.trim();
+        if (!text) return;
+        const btn = $("task-form").querySelector("button[type=submit]");
+        btn.disabled = true;
+        try {
+          check(await sb.from(T_TASKS).insert({
+            text,
+            person: $("task-person").value,
+            priority: Number($("task-priority").value),
+          }));
+          $("task-text").value = "";
+          await refreshTasks();
+        } catch {
+          showMsg("Не вдалося додати задачу");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      $("task-list").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const id = Number(btn.closest(".task").dataset.id);
+        try {
+          if (btn.dataset.act === "del") {
+            tasks = tasks.filter((t) => t.id !== id);
+            renderTasks();
+            check(await sb.from(T_TASKS).delete().eq("id", id));
+          } else {
+            const t = tasks.find((t) => t.id === id);
+            t.status = NEXT[t.status];
+            renderTasks();
+            check(await sb.from(T_TASKS).update({ status: t.status }).eq("id", id));
+          }
+        } catch {
+          await refreshTasks();
+          showMsg("Не вдалося зберегти зміну");
+        }
+      });
+
+      $("filters").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-f]");
+        if (!b) return;
+        filter = b.dataset.f;
+        renderFilters();
+        renderTasks();
+      });
+
+      renderFilters();
+      renderTasks();
+
+      /* ---------- Нотатки (список) ---------- */
+      function fmtDate(iso) {
+        const d = new Date(iso);
+        const opts = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+        if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+        return d.toLocaleString("uk-UA", opts);
+      }
+
+      function noteHtml(n) {
+        if (n.id === editingId) {
+          return `
+            <li class="note editing" data-id="${n.id}">
+              <textarea class="edit-text" rows="4" maxlength="5000">${esc(n.body)}</textarea>
+              <div class="note-actions">
+                <button class="link" data-act="save">Зберегти</button>
+                <button class="link" data-act="cancel">Скасувати</button>
+              </div>
+            </li>`;
+        }
+        return `
+          <li class="note${n.pinned ? " pinned" : ""}" data-id="${n.id}">
+            <div class="note-text">${esc(n.body)}</div>
+            <div class="note-meta">
+              <span>${fmtDate(n.created_at)}</span>
+              <span class="note-actions">
+                <button class="link" data-act="pin">${n.pinned ? "Відкріпити" : "Закріпити"}</button>
+                <button class="link" data-act="edit">Змінити</button>
+                <button class="link" data-act="del">Видалити</button>
+              </span>
+            </div>
+          </li>`;
+      }
+
+      function renderNotes() {
+        const q = noteQuery.trim().toLocaleLowerCase("uk");
+        const list = notes
+          .filter((n) => !q || n.body.toLocaleLowerCase("uk").includes(q))
+          .sort((a, b) => b.pinned - a.pinned || b.id - a.id);
+
+        $("notes-count").textContent = notes.length
+          ? (q ? `Знайдено ${list.length} з ${notes.length}` : `Нотаток: ${notes.length}`)
+          : "";
+        $("note-list").innerHTML = list.length
+          ? list.map(noteHtml).join("")
+          : `<li class="empty">${notes.length ? "Нічого не знайдено." : "Нотаток поки немає."}</li>`;
+      }
+
+      async function refreshNotes() {
+        if (editingId !== null) return;
+        const { data, error } = await sb.from(T_NOTES).select("*");
+        if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
+        notes = data;
+        renderNotes();
+      }
+
+      $("note-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const body = $("note-text").value.trim();
+        if (!body) return;
+        const btn = $("note-form").querySelector("button[type=submit]");
+        btn.disabled = true;
+        try {
+          check(await sb.from(T_NOTES).insert({ body }));
+          $("note-text").value = "";
+          await refreshNotes();
+        } catch {
+          showMsg("Не вдалося додати нотатку");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      $("note-text").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("note-form").requestSubmit();
+      });
+
+      $("note-search").addEventListener("input", (e) => {
+        noteQuery = e.target.value;
+        renderNotes();
+      });
+
+      $("note-list").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const li = btn.closest(".note");
+        const id = Number(li.dataset.id);
+        const n = notes.find((x) => x.id === id);
+        const act = btn.dataset.act;
+        try {
+          if (act === "pin") {
+            n.pinned = !n.pinned;
+            renderNotes();
+            check(await sb.from(T_NOTES).update({ pinned: n.pinned }).eq("id", id));
+          } else if (act === "edit") {
+            editingId = id;
+            renderNotes();
+            const ta = $("note-list").querySelector(".edit-text");
+            if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+          } else if (act === "cancel") {
+            editingId = null;
+            renderNotes();
+          } else if (act === "save") {
+            const body = li.querySelector(".edit-text").value.trim();
+            if (!body) return;
+            check(await sb.from(T_NOTES).update({ body, updated_at: new Date().toISOString() }).eq("id", id));
+            editingId = null;
+            await refreshNotes();
+          } else if (act === "del") {
+            if (!confirm("Видалити нотатку?")) return;
+            notes = notes.filter((x) => x.id !== id);
+            renderNotes();
+            check(await sb.from(T_NOTES).delete().eq("id", id));
+          }
+        } catch {
+          showMsg("Не вдалося зберегти зміну");
+          if (act !== "save") await refreshNotes();
+        }
+      });
+
+      renderNotes();
+
+      /* ---------- Синхронізація ---------- */
+      function syncAll() {
+        if (!loggedIn) return;
+        refreshTasks();
+        refreshNotes();
+      }
+      setInterval(() => { if (!document.hidden) syncAll(); }, 30000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) syncAll(); });
+      init();
+
+      /* ---------- Погода (Open-Meteo, без ключа) ---------- */
+      const MODELS = {
+        best_match: "Авто",
+        icon_seamless: "ICON (DWD)",
+        ecmwf_ifs025: "ECMWF",
+        gfs_seamless: "GFS (NOAA)",
+      };
+      const wsel = $("wmodel");
+      wsel.innerHTML = Object.entries(MODELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+      let wmodel = "best_match";
+      try {
+        const s = localStorage.getItem("family.wmodel");
+        if (s && MODELS[s]) wmodel = s;
+      } catch {}
+      wsel.value = wmodel;
+      wsel.addEventListener("change", () => {
+        wmodel = wsel.value;
+        try { localStorage.setItem("family.wmodel", wmodel); } catch {}
+        loadWeather();
+      });
+
+      const WMO = (c) => {
+        if (c === 0) return ["☀️", "Ясно"];
+        if (c <= 2) return ["🌤️", "Мінлива хмарність"];
+        if (c === 3) return ["☁️", "Хмарно"];
+        if (c <= 48) return ["🌫️", "Туман"];
+        if (c <= 57) return ["🌦️", "Мряка"];
+        if (c <= 67) return ["🌧️", "Дощ"];
+        if (c <= 77) return ["🌨️", "Сніг"];
+        if (c <= 82) return ["🌧️", "Злива"];
+        if (c <= 86) return ["🌨️", "Снігопад"];
+        return ["⛈️", "Гроза"];
+      };
+
+      const DIRS = ["Пн", "ПнСх", "Сх", "ПдСх", "Пд", "ПдЗх", "Зх", "ПнЗх"];
+      const num = (v, n = 0) => (v == null ? "—" : Number(v).toFixed(n));
+      const windTxt = (v, dir) =>
+        v == null ? "—" : `${Math.round(v)} м/с${dir != null ? " " + DIRS[Math.round(dir / 45) % 8] : ""}`;
+      const durTxt = (s) => (s == null ? "—" : `${Math.floor(s / 3600)} г ${Math.floor((s % 3600) / 60)} хв`);
+
+      let wdata = null;
+      let wIndex = 0;
+      const dlg = $("day-dlg");
+
+      async function loadWeather() {
+        const url =
+          `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,` +
+          `precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,daylight_duration,sunrise,sunset` +
+          `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m` +
+          `&wind_speed_unit=ms&models=${wmodel}&timezone=Europe%2FKyiv&forecast_days=7`;
+        try {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(r.status);
+          wdata = await r.json();
+          const d = wdata.daily;
+          $("weather").innerHTML = d.time.map((date, i) => {
+            const [ico, desc] = WMO(d.weather_code[i]);
+            const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
+            const prob = d.precipitation_probability_max?.[i];
+            const mm = d.precipitation_sum?.[i];
+            const rain = [prob != null ? `${prob}%` : null, mm != null ? `${mm.toFixed(1)} мм` : null].filter(Boolean).join(" · ") || "—";
+            const rise = d.sunrise[i].slice(11, 16);
+            const set = d.sunset[i].slice(11, 16);
+            return `
+              <li>
+                <button type="button" class="day" data-i="${i}" aria-label="Детальний прогноз: ${name}">
+                  <span class="name">${name}</span>
+                  <span class="ico" aria-hidden="true">${ico}</span>
+                  <span class="mid">
+                    <span class="desc">${desc}</span>
+                    <span class="sub">опади ${rain}</span>
+                  </span>
+                  <span class="end">
+                    <span class="temp">${Math.round(d.temperature_2m_max[i])}° <span>${Math.round(d.temperature_2m_min[i])}°</span></span>
+                    <span class="sub sun" title="Схід ${rise}, захід ${set}"><span class="sr">Схід</span>↑ ${rise} <span class="sr">захід</span>↓ ${set}</span>
+                  </span>
+                  <span class="chev" aria-hidden="true">›</span>
+                </button>
+              </li>`;
+          }).join("");
+          $("w-src").textContent = `Джерело: Open-Meteo · модель: ${MODELS[wmodel]} · ↑ схід, ↓ захід · натисніть на день для деталей`;
+          if (dlg.open) openDay(wIndex);
+        } catch {
+          wdata = null;
+          $("weather").innerHTML = `<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>`;
+          $("w-src").textContent = "";
+        }
+      }
+
+      /* ---------- Деталі дня ---------- */
+      function openDay(i) {
+        if (!wdata) return;
+        wIndex = i;
+        const d = wdata.daily;
+        const h = wdata.hourly;
+        const date = d.time[i];
+        const [ico, desc] = WMO(d.weather_code[i]);
+
+        const long = new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "long", day: "numeric", month: "long" });
+        $("dlg-title").textContent = long.charAt(0).toUpperCase() + long.slice(1);
+        $("dlg-prev").disabled = i === 0;
+        $("dlg-next").disabled = i === d.time.length - 1;
+
+        const prob = d.precipitation_probability_max?.[i];
+        const mm = d.precipitation_sum?.[i];
+        const gust = d.wind_gusts_10m_max?.[i];
+        const stats = [
+          ["Температура", `${num(d.temperature_2m_max[i])}° / ${num(d.temperature_2m_min[i])}°`,
+            `відчувається ${num(d.apparent_temperature_max?.[i])}° / ${num(d.apparent_temperature_min?.[i])}°`],
+          ["Опади", prob != null ? `${prob}%` : "—", mm != null ? `${mm.toFixed(1)} мм за день` : ""],
+          ["Вітер", `до ${windTxt(d.wind_speed_10m_max?.[i])}`, gust != null ? `пориви до ${Math.round(gust)} м/с` : ""],
+          ["Сонце", `↑ ${d.sunrise[i].slice(11, 16)}  ↓ ${d.sunset[i].slice(11, 16)}`,
+            `світловий день ${durTxt(d.daylight_duration?.[i])}`],
+        ];
+
+        const nowKey = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Kyiv" }).slice(0, 13).replace(" ", "T");
+        const rows = [];
+        h.time.forEach((t, k) => {
+          if (!t.startsWith(date)) return;
+          const [hi] = WMO(h.weather_code[k]);
+          const p = h.precipitation_probability?.[k];
+          const q = h.precipitation?.[k];
+          const pr = [p != null ? `${p}%` : null, q > 0 ? `${q.toFixed(1)} мм` : null].filter(Boolean).join(" · ") || "—";
+          rows.push(`
+            <li class="hr${t.startsWith(nowKey) ? " now" : ""}">
+              <span class="t">${t.slice(11, 16)}</span>
+              <span class="ico" aria-hidden="true">${hi}</span>
+              <span class="tmp">${num(h.temperature_2m[k])}°</span>
+              <span class="pr">${pr}</span>
+              <span class="wd">${windTxt(h.wind_speed_10m?.[k], h.wind_direction_10m?.[k])}</span>
+            </li>`);
+        });
+
+        $("dlg-body").innerHTML = `
+          <p class="dlg-sum">${ico} ${desc}</p>
+          <div class="stats">
+            ${stats.map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("")}
+          </div>
+          <ul class="hours">${rows.join("")}</ul>`;
+
+        if (!dlg.open) dlg.showModal();
+        const box = $("dlg-body").querySelector(".hours");
+        const cur = box.querySelector(".hr.now");
+        box.scrollTop = cur ? Math.max(0, cur.offsetTop - box.clientHeight / 2 + cur.clientHeight / 2) : 0;
+      }
+
+      $("weather").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-i]");
+        if (b) openDay(Number(b.dataset.i));
+      });
+      $("dlg-prev").addEventListener("click", () => openDay(wIndex - 1));
+      $("dlg-next").addEventListener("click", () => openDay(wIndex + 1));
+      $("dlg-close").addEventListener("click", () => dlg.close());
+      dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+
+      loadWeather();
+    </script>
+  </body>
+</html>
