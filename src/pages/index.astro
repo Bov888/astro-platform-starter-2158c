@@ -63,14 +63,25 @@ const LON = 25.14227;
       <!-- 2. Нотатки -->
       <section class="col" aria-labelledby="h-notes">
         <h2 id="h-notes">Нотатки</h2>
-        <textarea id="notes" placeholder="Купити, не забути, ідеї…" aria-label="Нотатки"></textarea>
-        <p id="notes-state" class="muted small" aria-live="polite"></p>
+
+        <form id="note-form" class="note-form">
+          <textarea id="note-text" rows="3" maxlength="5000" placeholder="Нова нотатка…" aria-label="Нова нотатка" required></textarea>
+          <button type="submit" class="btn">Додати</button>
+        </form>
+
+        <input id="note-search" type="search" placeholder="Пошук по нотатках" aria-label="Пошук по нотатках" />
+        <p id="notes-count" class="muted small"></p>
+        <ul id="note-list" class="note-list"></ul>
       </section>
 
       <!-- 3. Погода -->
       <section class="col" aria-labelledby="h-weather">
-        <h2 id="h-weather">Погода на 7 днів</h2>
+        <div class="col-head">
+          <h2 id="h-weather">Погода на 7 днів</h2>
+          <select id="wmodel" aria-label="Модель прогнозу"></select>
+        </div>
         <ul id="weather" class="weather"><li class="muted">Завантаження…</li></ul>
+        <p id="w-src" class="muted small"></p>
       </section>
     </main>
 
@@ -159,6 +170,9 @@ const LON = 25.14227;
         border: 1px solid var(--line);
         border-radius: 10px;
       }
+      .col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+      .col-head h2 { margin: 0; }
+      .col-head select { font-size: 13px; padding: 4px 8px; }
 
       input, select, textarea, button { font: inherit; color: inherit; }
       input, select, textarea {
@@ -188,6 +202,16 @@ const LON = 25.14227;
         font-size: 13px;
       }
       .ghost[hidden] { display: none; }
+      .link {
+        background: none;
+        border: 0;
+        padding: 4px 0;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12.5px;
+        text-decoration: underline;
+      }
+      .link:hover { color: var(--ink); }
 
       /* Вхід */
       .login {
@@ -265,11 +289,38 @@ const LON = 25.14227;
       .empty { color: var(--muted); padding: 8px 0; }
 
       /* Нотатки */
-      #notes { flex: 1; min-height: 160px; resize: none; line-height: 1.55; }
-      #notes-state { margin: 8px 0 0; min-height: 1.4em; }
+      .note-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+      .note-form textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+      .note-form .btn { align-self: flex-end; }
+      #note-search { margin-bottom: 6px; }
+      #notes-count { margin: 0 0 8px; min-height: 1.3em; }
+      .note-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+      .note {
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--line);
+        border-radius: 6px;
+      }
+      .note.pinned { border-left-color: var(--accent); }
+      .note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .note-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .note-actions { display: flex; gap: 14px; }
+      .note.editing textarea { width: 100%; min-height: 90px; margin-bottom: 6px; resize: vertical; line-height: 1.5; }
 
       /* Погода */
       .weather { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+      #w-src { margin: 10px 0 0; }
       .day {
         display: grid;
         grid-template-columns: 62px 34px 1fr auto;
@@ -292,8 +343,7 @@ const LON = 25.14227;
         body { padding: 14px; }
         .board { grid-template-columns: 1fr; }
         .col { min-height: 320px; }
-        .task-list, .weather { overflow: visible; }
-        #notes { min-height: 240px; }
+        .task-list, .weather, .note-list { overflow: visible; }
       }
     </style>
 
@@ -302,6 +352,8 @@ const LON = 25.14227;
       const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
       const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
       const NEXT = { todo: "doing", doing: "done", done: "todo" };
+      const T_TASKS = "family_tasks";
+      const T_NOTES = "family_note_items";
 
       const $ = (id) => document.getElementById(id);
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -339,8 +391,9 @@ const LON = 25.14227;
       let loggedIn = false;
       let tasks = [];
       let filter = "all";
-      const notes = $("notes");
-      let notesDirty = false;
+      let notes = [];
+      let noteQuery = "";
+      let editingId = null;
 
       function setAuthUi(on) {
         loggedIn = on;
@@ -371,8 +424,10 @@ const LON = 25.14227;
       sb.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           tasks = [];
+          notes = [];
+          editingId = null;
           renderTasks();
-          notes.value = "";
+          renderNotes();
           setAuthUi(false);
         }
       });
@@ -407,7 +462,7 @@ const LON = 25.14227;
       }
 
       async function refreshTasks() {
-        const { data, error } = await sb.from("family_tasks").select("*").order("id");
+        const { data, error } = await sb.from(T_TASKS).select("*").order("id");
         if (error) { showMsg("Не вдалося завантажити задачі"); return; }
         tasks = data;
         renderTasks();
@@ -420,7 +475,7 @@ const LON = 25.14227;
         const btn = $("task-form").querySelector("button[type=submit]");
         btn.disabled = true;
         try {
-          check(await sb.from("family_tasks").insert({
+          check(await sb.from(T_TASKS).insert({
             text,
             person: $("task-person").value,
             priority: Number($("task-priority").value),
@@ -442,12 +497,12 @@ const LON = 25.14227;
           if (btn.dataset.act === "del") {
             tasks = tasks.filter((t) => t.id !== id);
             renderTasks();
-            check(await sb.from("family_tasks").delete().eq("id", id));
+            check(await sb.from(T_TASKS).delete().eq("id", id));
           } else {
             const t = tasks.find((t) => t.id === id);
             t.status = NEXT[t.status];
             renderTasks();
-            check(await sb.from("family_tasks").update({ status: t.status }).eq("id", id));
+            check(await sb.from(T_TASKS).update({ status: t.status }).eq("id", id));
           }
         } catch {
           await refreshTasks();
@@ -466,32 +521,126 @@ const LON = 25.14227;
       renderFilters();
       renderTasks();
 
-      /* ---------- Нотатки ---------- */
-      let notesTimer;
-
-      async function refreshNotes() {
-        if (document.activeElement === notes || notesDirty) return;
-        const { data, error } = await sb.from("family_notes").select("body").eq("id", 1).maybeSingle();
-        if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
-        if (data) notes.value = data.body;
+      /* ---------- Нотатки (список) ---------- */
+      function fmtDate(iso) {
+        const d = new Date(iso);
+        const opts = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+        if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+        return d.toLocaleString("uk-UA", opts);
       }
 
-      notes.addEventListener("input", () => {
-        notesDirty = true;
-        $("notes-state").textContent = "Збереження…";
-        clearTimeout(notesTimer);
-        notesTimer = setTimeout(async () => {
-          try {
-            check(await sb.from("family_notes")
-              .update({ body: notes.value, updated_at: new Date().toISOString() })
-              .eq("id", 1));
-            notesDirty = false;
-            $("notes-state").textContent = "Збережено";
-          } catch {
-            $("notes-state").textContent = "Не збережено, перевірте зв'язок";
-          }
-        }, 600);
+      function noteHtml(n) {
+        if (n.id === editingId) {
+          return `
+            <li class="note editing" data-id="${n.id}">
+              <textarea class="edit-text" rows="4" maxlength="5000">${esc(n.body)}</textarea>
+              <div class="note-actions">
+                <button class="link" data-act="save">Зберегти</button>
+                <button class="link" data-act="cancel">Скасувати</button>
+              </div>
+            </li>`;
+        }
+        return `
+          <li class="note${n.pinned ? " pinned" : ""}" data-id="${n.id}">
+            <div class="note-text">${esc(n.body)}</div>
+            <div class="note-meta">
+              <span>${fmtDate(n.created_at)}</span>
+              <span class="note-actions">
+                <button class="link" data-act="pin">${n.pinned ? "Відкріпити" : "Закріпити"}</button>
+                <button class="link" data-act="edit">Змінити</button>
+                <button class="link" data-act="del">Видалити</button>
+              </span>
+            </div>
+          </li>`;
+      }
+
+      function renderNotes() {
+        const q = noteQuery.trim().toLocaleLowerCase("uk");
+        const list = notes
+          .filter((n) => !q || n.body.toLocaleLowerCase("uk").includes(q))
+          .sort((a, b) => b.pinned - a.pinned || b.id - a.id);
+
+        $("notes-count").textContent = notes.length
+          ? (q ? `Знайдено ${list.length} з ${notes.length}` : `Нотаток: ${notes.length}`)
+          : "";
+        $("note-list").innerHTML = list.length
+          ? list.map(noteHtml).join("")
+          : `<li class="empty">${notes.length ? "Нічого не знайдено." : "Нотаток поки немає."}</li>`;
+      }
+
+      async function refreshNotes() {
+        if (editingId !== null) return;
+        const { data, error } = await sb.from(T_NOTES).select("*");
+        if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
+        notes = data;
+        renderNotes();
+      }
+
+      $("note-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const body = $("note-text").value.trim();
+        if (!body) return;
+        const btn = $("note-form").querySelector("button[type=submit]");
+        btn.disabled = true;
+        try {
+          check(await sb.from(T_NOTES).insert({ body }));
+          $("note-text").value = "";
+          await refreshNotes();
+        } catch {
+          showMsg("Не вдалося додати нотатку");
+        } finally {
+          btn.disabled = false;
+        }
       });
+
+      $("note-text").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("note-form").requestSubmit();
+      });
+
+      $("note-search").addEventListener("input", (e) => {
+        noteQuery = e.target.value;
+        renderNotes();
+      });
+
+      $("note-list").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const li = btn.closest(".note");
+        const id = Number(li.dataset.id);
+        const n = notes.find((x) => x.id === id);
+        const act = btn.dataset.act;
+        try {
+          if (act === "pin") {
+            n.pinned = !n.pinned;
+            renderNotes();
+            check(await sb.from(T_NOTES).update({ pinned: n.pinned }).eq("id", id));
+          } else if (act === "edit") {
+            editingId = id;
+            renderNotes();
+            const ta = $("note-list").querySelector(".edit-text");
+            if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+          } else if (act === "cancel") {
+            editingId = null;
+            renderNotes();
+          } else if (act === "save") {
+            const body = li.querySelector(".edit-text").value.trim();
+            if (!body) return;
+            check(await sb.from(T_NOTES).update({ body, updated_at: new Date().toISOString() }).eq("id", id));
+            editingId = null;
+            await refreshNotes();
+          } else if (act === "del") {
+            if (!confirm("Видалити нотатку?")) return;
+            notes = notes.filter((x) => x.id !== id);
+            renderNotes();
+            check(await sb.from(T_NOTES).delete().eq("id", id));
+          }
+        } catch {
+          showMsg("Не вдалося зберегти зміну");
+          if (act !== "save") await refreshNotes();
+        }
+      });
+
+      renderNotes();
 
       /* ---------- Синхронізація ---------- */
       function syncAll() {
@@ -504,6 +653,26 @@ const LON = 25.14227;
       init();
 
       /* ---------- Погода (Open-Meteo, без ключа) ---------- */
+      const MODELS = {
+        best_match: "Авто",
+        icon_seamless: "ICON (DWD)",
+        ecmwf_ifs025: "ECMWF",
+        gfs_seamless: "GFS (NOAA)",
+      };
+      const wsel = $("wmodel");
+      wsel.innerHTML = Object.entries(MODELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+      let wmodel = "best_match";
+      try {
+        const s = localStorage.getItem("family.wmodel");
+        if (s && MODELS[s]) wmodel = s;
+      } catch {}
+      wsel.value = wmodel;
+      wsel.addEventListener("change", () => {
+        wmodel = wsel.value;
+        try { localStorage.setItem("family.wmodel", wmodel); } catch {}
+        loadWeather();
+      });
+
       const WMO = (c) => {
         if (c === 0) return ["☀️", "Ясно"];
         if (c <= 2) return ["🌤️", "Мінлива хмарність"];
@@ -521,8 +690,8 @@ const LON = 25.14227;
         const { lat, lon } = document.body.dataset;
         const url =
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunset` +
-          `&timezone=Europe%2FKyiv&forecast_days=7`;
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset` +
+          `&models=${wmodel}&timezone=Europe%2FKyiv&forecast_days=7`;
         try {
           const r = await fetch(url);
           if (!r.ok) throw new Error(r.status);
@@ -530,19 +699,25 @@ const LON = 25.14227;
           $("weather").innerHTML = d.time.map((date, i) => {
             const [ico, desc] = WMO(d.weather_code[i]);
             const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
+            const prob = d.precipitation_probability_max?.[i];
+            const mm = d.precipitation_sum?.[i];
+            const rain = [prob != null ? `${prob}%` : null, mm != null ? `${mm.toFixed(1)} мм` : null].filter(Boolean).join(" · ") || "—";
             return `
               <li class="day">
                 <span class="name">${name}</span>
                 <span class="ico" aria-hidden="true">${ico}</span>
                 <span>
                   <span class="desc">${desc}</span><br />
-                  <span class="sub">опади ${d.precipitation_probability_max[i] ?? 0}% · <span class="sun">захід ${d.sunset[i].slice(11, 16)}</span></span>
+                  <span class="sub">опади ${rain}</span><br />
+                  <span class="sub sun">схід ${d.sunrise[i].slice(11, 16)} · захід ${d.sunset[i].slice(11, 16)}</span>
                 </span>
                 <span class="temp">${Math.round(d.temperature_2m_max[i])}° <span>${Math.round(d.temperature_2m_min[i])}°</span></span>
               </li>`;
           }).join("");
+          $("w-src").textContent = `Джерело: Open-Meteo · модель: ${MODELS[wmodel]}`;
         } catch {
           $("weather").innerHTML = `<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>`;
+          $("w-src").textContent = "";
         }
       }
       loadWeather();
