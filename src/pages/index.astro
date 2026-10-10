@@ -1,8 +1,8 @@
 ---
-// src/pages/index.astro
-// Статична сторінка: усе працює в браузері, дані зберігаються в localStorage.
-const LAT = 48.2417; // Тюдів (Google Maps)
-const LON = 25.1284;
+const SB_URL = "mlkdphygsdfcanztbtez";
+const SB_KEY = "sb_publishable_yodMR9SylDv9tF51Y7q43A_sqak1u8o";
+const LAT = 48.24872; // Тюдів
+const LON = 25.14227;
 ---
 
 <!doctype html>
@@ -11,18 +11,32 @@ const LON = 25.1284;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Родинна дошка</title>
+    <script is:inline>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("family.theme"); } catch (e) {}
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Onest:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
   </head>
-  <body data-lat={LAT} data-lon={LON}>
+  <body data-lat={LAT} data-lon={LON} data-sb-url={SB_URL} data-sb-key={SB_KEY}>
     <header class="top">
       <h1>Родинна дошка</h1>
-      <p id="today"></p>
+      <div class="tools">
+        <p id="today"></p>
+        <button id="theme" type="button" class="ghost"></button>
+        <button id="logout" type="button" class="ghost" hidden>Вийти</button>
+      </div>
     </header>
+    <p id="msg" class="msg" role="status"></p>
 
     <main class="board">
       <!-- 1. Задачі -->
@@ -60,18 +74,51 @@ const LON = 25.1284;
       </section>
     </main>
 
+    <!-- Вхід -->
+    <div id="login" class="login" hidden>
+      <form id="login-form" class="login-card">
+        <h2>Вхід для родини</h2>
+        <input id="email" type="email" placeholder="Email" autocomplete="username" required />
+        <input id="password" type="password" placeholder="Пароль" autocomplete="current-password" required />
+        <button type="submit" class="btn">Увійти</button>
+        <p id="login-err" class="msg" role="alert"></p>
+      </form>
+    </div>
+
     <style is:global>
       :root {
+        color-scheme: light;
         --bg: #e8eeea;
         --surface: #f8faf8;
+        --field: #ffffff;
         --ink: #1b2b27;
         --muted: #5a6c66;
         --line: #c7d2cc;
-        --spruce: #24473d;
+        --accent: #24473d;
+        --on-accent: #ffffff;
         --sunset: #c2561f;
         --p1: #b3402f;
         --p2: #cf9626;
         --p3: #5b8a72;
+        --doing-bg: #f3e2bd;
+        --done-bg: #cfe3d8;
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #101714;
+        --surface: #18221e;
+        --field: #0e1512;
+        --ink: #e4ece8;
+        --muted: #98a9a2;
+        --line: #2f3d37;
+        --accent: #7fc4a6;
+        --on-accent: #0f1c17;
+        --sunset: #f08a52;
+        --p1: #e0705e;
+        --p2: #e0b04a;
+        --p3: #7fc4a6;
+        --doing-bg: #4a3d1c;
+        --done-bg: #1f4034;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
@@ -88,10 +135,13 @@ const LON = 25.1284;
       h1, h2 { font-family: "Literata", Georgia, serif; margin: 0; }
       h1 { font-size: 28px; }
       h2 { font-size: 20px; margin-bottom: 14px; }
-      .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-      .top p { margin: 0; color: var(--muted); }
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .tools p { margin: 0; color: var(--muted); }
       .muted { color: var(--muted); }
       .small { font-size: 13px; }
+      .msg { margin: -8px 0 0; color: var(--p1); font-size: 13px; }
+      .msg:empty { display: none; }
 
       .board {
         flex: 1;
@@ -112,22 +162,57 @@ const LON = 25.1284;
 
       input, select, textarea, button { font: inherit; color: inherit; }
       input, select, textarea {
-        background: #fff;
+        background: var(--field);
         border: 1px solid var(--line);
         border-radius: 6px;
         padding: 8px 10px;
       }
-      :focus-visible { outline: 2px solid var(--spruce); outline-offset: 2px; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .btn {
-        background: var(--spruce);
-        color: #fff;
+        background: var(--accent);
+        color: var(--on-accent);
         border: 0;
         border-radius: 6px;
         padding: 8px 14px;
         cursor: pointer;
         font-weight: 600;
       }
-      .btn:hover { background: #1a352d; }
+      .btn:hover { filter: brightness(1.12); }
+      .btn:disabled { opacity: .6; cursor: default; }
+      .ghost {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 14px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .ghost[hidden] { display: none; }
+
+      /* Вхід */
+      .login {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: var(--bg);
+      }
+      .login[hidden] { display: none; }
+      .login-card {
+        width: min(360px, 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 24px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .login-card h2 { margin-bottom: 4px; }
+      .login-card .msg { margin: 0; }
 
       /* Задачі */
       .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -142,7 +227,7 @@ const LON = 25.1284;
         cursor: pointer;
         font-size: 13px;
       }
-      .chip[aria-pressed="true"] { background: var(--spruce); border-color: var(--spruce); color: #fff; }
+      .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .task {
@@ -151,7 +236,7 @@ const LON = 25.1284;
         gap: 4px 10px;
         padding: 10px 10px 10px 14px;
         margin-bottom: 8px;
-        background: #fff;
+        background: var(--field);
         border: 1px solid var(--line);
         border-left: 5px solid var(--p2);
         border-radius: 6px;
@@ -170,8 +255,8 @@ const LON = 25.1284;
         font-size: 12px;
         cursor: pointer;
       }
-      .task[data-s="doing"] .status { background: #f3e2bd; border-color: var(--p2); }
-      .task[data-s="done"] .status { background: #cfe3d8; border-color: var(--p3); }
+      .task[data-s="doing"] .status { background: var(--doing-bg); border-color: var(--p2); }
+      .task[data-s="done"] .status { background: var(--done-bg); border-color: var(--p3); }
       .del {
         border: 0; background: none; cursor: pointer; color: var(--muted);
         font-size: 18px; line-height: 1; padding: 0 4px;
@@ -217,25 +302,82 @@ const LON = 25.1284;
       const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
       const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
       const NEXT = { todo: "doing", doing: "done", done: "todo" };
-      const KEY_TASKS = "family.tasks.v1";
-      const KEY_NOTES = "family.notes.v1";
 
       const $ = (id) => document.getElementById(id);
-      const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-      const load = (k, fallback) => {
-        try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; }
-      };
-      const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const check = ({ error }) => { if (error) throw error; };
 
-      /* ---------- Дата ---------- */
+      const { sbUrl, sbKey } = document.body.dataset;
+      const sb = supabase.createClient(sbUrl, sbKey);
+
+      /* ---------- Тема ---------- */
+      const themeBtn = $("theme");
+      const setTheme = (t) => {
+        document.documentElement.dataset.theme = t;
+        themeBtn.textContent = t === "dark" ? "Світла тема" : "Темна тема";
+      };
+      setTheme(document.documentElement.dataset.theme || "light");
+      themeBtn.addEventListener("click", () => {
+        const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        try { localStorage.setItem("family.theme", t); } catch {}
+        setTheme(t);
+      });
+
+      /* ---------- Дата та повідомлення ---------- */
       $("today").textContent = new Date().toLocaleDateString("uk-UA", {
         weekday: "long", day: "numeric", month: "long", year: "numeric",
       });
 
-      /* ---------- Задачі ---------- */
-      let tasks = load(KEY_TASKS, []);
-      let filter = "all";
+      let msgTimer;
+      function showMsg(text) {
+        $("msg").textContent = text;
+        clearTimeout(msgTimer);
+        if (text) msgTimer = setTimeout(() => ($("msg").textContent = ""), 5000);
+      }
 
+      /* ---------- Вхід ---------- */
+      let loggedIn = false;
+      let tasks = [];
+      let filter = "all";
+      const notes = $("notes");
+      let notesDirty = false;
+
+      function setAuthUi(on) {
+        loggedIn = on;
+        $("login").hidden = on;
+        $("logout").hidden = !on;
+      }
+
+      async function init() {
+        const { data } = await sb.auth.getSession();
+        setAuthUi(!!data.session);
+        if (data.session) syncAll();
+      }
+
+      $("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        $("login-err").textContent = "";
+        const { error } = await sb.auth.signInWithPassword({
+          email: $("email").value.trim(),
+          password: $("password").value,
+        });
+        if (error) { $("login-err").textContent = "Невірний email або пароль"; return; }
+        $("password").value = "";
+        init();
+      });
+
+      $("logout").addEventListener("click", () => sb.auth.signOut());
+
+      sb.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") {
+          tasks = [];
+          renderTasks();
+          notes.value = "";
+          setAuthUi(false);
+        }
+      });
+
+      /* ---------- Задачі ---------- */
       $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
 
       function renderFilters() {
@@ -264,30 +406,53 @@ const LON = 25.1284;
           : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
       }
 
-      $("task-form").addEventListener("submit", (e) => {
+      async function refreshTasks() {
+        const { data, error } = await sb.from("family_tasks").select("*").order("id");
+        if (error) { showMsg("Не вдалося завантажити задачі"); return; }
+        tasks = data;
+        renderTasks();
+      }
+
+      $("task-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = $("task-text").value.trim();
         if (!text) return;
-        tasks.push({
-          id: Date.now(),
-          text,
-          person: $("task-person").value,
-          priority: Number($("task-priority").value),
-          status: "todo",
-        });
-        save(KEY_TASKS, tasks);
-        $("task-text").value = "";
-        renderTasks();
+        const btn = $("task-form").querySelector("button[type=submit]");
+        btn.disabled = true;
+        try {
+          check(await sb.from("family_tasks").insert({
+            text,
+            person: $("task-person").value,
+            priority: Number($("task-priority").value),
+          }));
+          $("task-text").value = "";
+          await refreshTasks();
+        } catch {
+          showMsg("Не вдалося додати задачу");
+        } finally {
+          btn.disabled = false;
+        }
       });
 
-      $("task-list").addEventListener("click", (e) => {
+      $("task-list").addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-act]");
         if (!btn) return;
         const id = Number(btn.closest(".task").dataset.id);
-        if (btn.dataset.act === "del") tasks = tasks.filter((t) => t.id !== id);
-        else { const t = tasks.find((t) => t.id === id); t.status = NEXT[t.status]; }
-        save(KEY_TASKS, tasks);
-        renderTasks();
+        try {
+          if (btn.dataset.act === "del") {
+            tasks = tasks.filter((t) => t.id !== id);
+            renderTasks();
+            check(await sb.from("family_tasks").delete().eq("id", id));
+          } else {
+            const t = tasks.find((t) => t.id === id);
+            t.status = NEXT[t.status];
+            renderTasks();
+            check(await sb.from("family_tasks").update({ status: t.status }).eq("id", id));
+          }
+        } catch {
+          await refreshTasks();
+          showMsg("Не вдалося зберегти зміну");
+        }
       });
 
       $("filters").addEventListener("click", (e) => {
@@ -302,17 +467,41 @@ const LON = 25.1284;
       renderTasks();
 
       /* ---------- Нотатки ---------- */
-      const notes = $("notes");
-      notes.value = load(KEY_NOTES, "");
       let notesTimer;
+
+      async function refreshNotes() {
+        if (document.activeElement === notes || notesDirty) return;
+        const { data, error } = await sb.from("family_notes").select("body").eq("id", 1).maybeSingle();
+        if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
+        if (data) notes.value = data.body;
+      }
+
       notes.addEventListener("input", () => {
+        notesDirty = true;
         $("notes-state").textContent = "Збереження…";
         clearTimeout(notesTimer);
-        notesTimer = setTimeout(() => {
-          save(KEY_NOTES, notes.value);
-          $("notes-state").textContent = "Збережено";
-        }, 400);
+        notesTimer = setTimeout(async () => {
+          try {
+            check(await sb.from("family_notes")
+              .update({ body: notes.value, updated_at: new Date().toISOString() })
+              .eq("id", 1));
+            notesDirty = false;
+            $("notes-state").textContent = "Збережено";
+          } catch {
+            $("notes-state").textContent = "Не збережено, перевірте зв'язок";
+          }
+        }, 600);
       });
+
+      /* ---------- Синхронізація ---------- */
+      function syncAll() {
+        if (!loggedIn) return;
+        refreshTasks();
+        refreshNotes();
+      }
+      setInterval(() => { if (!document.hidden) syncAll(); }, 30000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) syncAll(); });
+      init();
 
       /* ---------- Погода (Open-Meteo, без ключа) ---------- */
       const WMO = (c) => {
