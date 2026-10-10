@@ -14,7 +14,7 @@ const LON = 25.14227;
     <script is:inline>
       (function () {
         var t = null;
-        try { t = localStorage.getItem("family.theme"); } catch (err) {}
+        try { t = localStorage.getItem("family.theme"); } catch (e) {}
         if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         document.documentElement.dataset.theme = t;
       })();
@@ -63,15 +63,8 @@ const LON = 25.14227;
       <!-- 2. Нотатки -->
       <section class="col" aria-labelledby="h-notes">
         <h2 id="h-notes">Нотатки</h2>
-        
-        <form id="note-form" class="task-form">
-          <div class="row">
-            <input id="note-text" type="text" placeholder="Купити, не забути, ідеї…" required />
-            <button type="submit" class="btn">Зберегти</button>
-          </div>
-        </form>
-        
-        <ul id="note-list" class="task-list"></ul>
+        <textarea id="notes" placeholder="Купити, не забути, ідеї…" aria-label="Нотатки"></textarea>
+        <p id="notes-state" class="muted small" aria-live="polite"></p>
       </section>
 
       <!-- 3. Погода -->
@@ -107,6 +100,8 @@ const LON = 25.14227;
         --p1: #b3402f;
         --p2: #cf9626;
         --p3: #5b8a72;
+        --doing-bg: #f3e2bd;
+        --done-bg: #cfe3d8;
       }
       :root[data-theme="dark"] {
         color-scheme: dark;
@@ -122,6 +117,8 @@ const LON = 25.14227;
         --p1: #e0705e;
         --p2: #e0b04a;
         --p3: #7fc4a6;
+        --doing-bg: #4a3d1c;
+        --done-bg: #1f4034;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
@@ -142,6 +139,7 @@ const LON = 25.14227;
       .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .tools p { margin: 0; color: var(--muted); }
       .muted { color: var(--muted); }
+      .small { font-size: 13px; }
       .msg { margin: -8px 0 0; color: var(--p1); font-size: 13px; }
       .msg:empty { display: none; }
 
@@ -178,7 +176,6 @@ const LON = 25.14227;
         padding: 8px 14px;
         cursor: pointer;
         font-weight: 600;
-        white-space: nowrap;
       }
       .btn:hover { filter: brightness(1.12); }
       .btn:disabled { opacity: .6; cursor: default; }
@@ -217,10 +214,9 @@ const LON = 25.14227;
       .login-card h2 { margin-bottom: 4px; }
       .login-card .msg { margin: 0; }
 
-      /* Задачі та Нотатки */
+      /* Задачі */
       .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
       .task-form .row { display: flex; gap: 8px; }
-      .task-form .row input { flex: 1; }
       .task-form select { flex: 1; min-width: 0; }
       .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
       .chip {
@@ -234,13 +230,11 @@ const LON = 25.14227;
       .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
-      
       .task {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 1fr auto;
         gap: 4px 10px;
-        align-items: start;
-        padding: 10px 10px 10px 12px;
+        padding: 10px 10px 10px 14px;
         margin-bottom: 8px;
         background: var(--field);
         border: 1px solid var(--line);
@@ -249,33 +243,30 @@ const LON = 25.14227;
       }
       .task[data-p="1"] { border-left-color: var(--p1); }
       .task[data-p="3"] { border-left-color: var(--p3); }
-      
-      .task-check {
-        margin-top: 3px;
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-        accent-color: var(--accent);
-      }
       .task .text { font-weight: 500; overflow-wrap: anywhere; }
-      .task .meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
-      
-      .task[data-s="done"] { opacity: .6; }
+      .task .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
       .task[data-s="done"] .text { text-decoration: line-through; color: var(--muted); }
-      
-      .note-item {
-        grid-template-columns: 1fr auto;
-        border-left-color: var(--muted);
-        align-items: center;
+      .task[data-s="done"] { opacity: .7; }
+      .status {
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        cursor: pointer;
       }
-      .note-item .text { grid-column: 1 / 2; font-weight: 400; }
-
+      .task[data-s="doing"] .status { background: var(--doing-bg); border-color: var(--p2); }
+      .task[data-s="done"] .status { background: var(--done-bg); border-color: var(--p3); }
       .del {
         border: 0; background: none; cursor: pointer; color: var(--muted);
         font-size: 18px; line-height: 1; padding: 0 4px;
       }
       .del:hover { color: var(--p1); }
       .empty { color: var(--muted); padding: 8px 0; }
+
+      /* Нотатки */
+      #notes { flex: 1; min-height: 160px; resize: none; line-height: 1.55; }
+      #notes-state { margin: 8px 0 0; min-height: 1.4em; }
 
       /* Погода */
       .weather { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
@@ -302,56 +293,54 @@ const LON = 25.14227;
         .board { grid-template-columns: 1fr; }
         .col { min-height: 320px; }
         .task-list, .weather { overflow: visible; }
+        #notes { min-height: 240px; }
       }
     </style>
 
     <script is:inline>
       const PEOPLE = ["Олександр", "Людмила", "Максим", "Антоніна"];
       const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
+      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
+      const NEXT = { todo: "doing", doing: "done", done: "todo" };
 
-      const $ = function(id) { return document.getElementById(id); };
-      const esc = function(s) {
-        return String(s).replace(/[\x26\x3C\x3E\x22\x27]/g, function(c) {
-          return { "\x26": "&amp;", "\x3C": "&lt;", "\x3E": "&gt;", "\x22": "&quot;", "\x27": "&#39;" }[c];
-        });
-      };
-      const check = function(res) { if (res.error) throw res.error; };
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const check = ({ error }) => { if (error) throw error; };
 
-      const ds = document.body.dataset;
-      const sbUrl = ds.sbUrl;
-      const sbKey = ds.sbKey;
+      const { sbUrl, sbKey } = document.body.dataset;
       const sb = supabase.createClient(sbUrl, sbKey);
 
       /* ---------- Тема ---------- */
       const themeBtn = $("theme");
-      const setTheme = function(t) {
+      const setTheme = (t) => {
         document.documentElement.dataset.theme = t;
         themeBtn.textContent = t === "dark" ? "Світла тема" : "Темна тема";
       };
       setTheme(document.documentElement.dataset.theme || "light");
-      themeBtn.addEventListener("click", function() {
+      themeBtn.addEventListener("click", () => {
         const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-        try { localStorage.setItem("family.theme", t); } catch (err) {}
+        try { localStorage.setItem("family.theme", t); } catch {}
         setTheme(t);
       });
 
       /* ---------- Дата та повідомлення ---------- */
       $("today").textContent = new Date().toLocaleDateString("uk-UA", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric"
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
       });
 
       let msgTimer;
       function showMsg(text) {
         $("msg").textContent = text;
         clearTimeout(msgTimer);
-        if (text) msgTimer = setTimeout(function() { $("msg").textContent = ""; }, 5000);
+        if (text) msgTimer = setTimeout(() => ($("msg").textContent = ""), 5000);
       }
 
       /* ---------- Вхід ---------- */
       let loggedIn = false;
       let tasks = [];
-      let notesArray = [];
       let filter = "all";
+      const notes = $("notes");
+      let notesDirty = false;
 
       function setAuthUi(on) {
         loggedIn = on;
@@ -360,80 +349,71 @@ const LON = 25.14227;
       }
 
       async function init() {
-        const res = await sb.auth.getSession();
-        setAuthUi(!!res.data.session);
-        if (res.data.session) syncAll();
+        const { data } = await sb.auth.getSession();
+        setAuthUi(!!data.session);
+        if (data.session) syncAll();
       }
 
-      $("login-form").addEventListener("submit", async function(e) {
+      $("login-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         $("login-err").textContent = "";
-        const res = await sb.auth.signInWithPassword({
+        const { error } = await sb.auth.signInWithPassword({
           email: $("email").value.trim(),
-          password: $("password").value
+          password: $("password").value,
         });
-        if (res.error) { $("login-err").textContent = "Невірний email або пароль"; return; }
+        if (error) { $("login-err").textContent = "Невірний email або пароль"; return; }
         $("password").value = "";
         init();
       });
 
-      $("logout").addEventListener("click", function() { sb.auth.signOut(); });
+      $("logout").addEventListener("click", () => sb.auth.signOut());
 
-      sb.auth.onAuthStateChange(function(event) {
+      sb.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           tasks = [];
-          notesArray = [];
           renderTasks();
-          renderNotes();
+          notes.value = "";
           setAuthUi(false);
         }
       });
 
       /* ---------- Задачі ---------- */
-      $("task-person").innerHTML = PEOPLE.map(function(p) { return '<option>' + p + '</option>'; }).join("");
+      $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
 
       function renderFilters() {
-        const items = ["all"].concat(PEOPLE);
+        const items = ["all", ...PEOPLE];
         $("filters").innerHTML = items
-          .map(function(p) {
-            const label = p === "all" ? "Усі" : p;
-            const pressed = p === filter ? "true" : "false";
-            return '<button type="button" class="chip" data-f="' + p + '" aria-pressed="' + pressed + '">' + label + '</button>';
-          })
+          .map((p) => `<button type="button" class="chip" data-f="${p}" aria-pressed="${p === filter}">${p === "all" ? "Усі" : p}</button>`)
           .join("");
       }
 
       function renderTasks() {
         const visible = tasks
-          .filter(function(t) { return filter === "all" || t.person === filter; })
-          .sort(function(a, b) { return (a.status === "done" ? 1 : 0) - (b.status === "done" ? 1 : 0) || a.priority - b.priority || a.id - b.id; });
+          .filter((t) => filter === "all" || t.person === filter)
+          .sort((a, b) => (a.status === "done") - (b.status === "done") || a.priority - b.priority || a.id - b.id);
 
-        if (visible.length) {
-          $("task-list").innerHTML = visible.map(function(t) {
-            const isChecked = t.status === 'done' ? 'checked' : '';
-            return '<li class="task" data-id="' + t.id + '" data-p="' + t.priority + '" data-s="' + t.status + '">' +
-              '<input type="checkbox" class="task-check" data-act="toggle" ' + isChecked + ' aria-label="Відмітити як готове" />' +
-              '<span class="text">' + esc(t.text) + '</span>' +
-              '<button class="del" data-act="del" aria-label="Видалити задачу">×</button>' +
-              '<div class="meta">' +
-                '<strong>' + esc(t.person) + '</strong>' +
-                '<span>' + PRIORITIES[t.priority] + ' пріоритет</span>' +
-              '</div>' +
-            '</li>';
-          }).join("");
-        } else {
-          $("task-list").innerHTML = '<li class="empty">Задач немає. Додайте першу вище.</li>';
-        }
+        $("task-list").innerHTML = visible.length
+          ? visible.map((t) => `
+            <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
+              <span class="text">${esc(t.text)}</span>
+              <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
+              <div class="meta">
+                <strong>${esc(t.person)}</strong>
+                <span>${PRIORITIES[t.priority]} пріоритет</span>
+                <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
+              </div>
+            </li>`).join("")
+          : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
       }
 
       async function refreshTasks() {
-        const res = await sb.from("family_tasks").select("*").order("id");
-        if (res.error) { showMsg("Не вдалося завантажити задачі"); return; }
-        tasks = res.data;
+        const { data, error } = await sb.from("family_tasks").select("*").order("id");
+        if (error) { showMsg("Не вдалося завантажити задачі"); return; }
+        tasks = data;
         renderTasks();
       }
 
-      $("task-form").addEventListener("submit", async function(e) {
+      $("task-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = $("task-text").value.trim();
         if (!text) return;
@@ -441,51 +421,41 @@ const LON = 25.14227;
         btn.disabled = true;
         try {
           check(await sb.from("family_tasks").insert({
-            text: text,
+            text,
             person: $("task-person").value,
             priority: Number($("task-priority").value),
-            status: "todo"
           }));
           $("task-text").value = "";
           await refreshTasks();
-        } catch (err) {
+        } catch {
           showMsg("Не вдалося додати задачу");
         } finally {
           btn.disabled = false;
         }
       });
 
-      $("task-list").addEventListener("click", async function(e) {
-        const delBtn = e.target.closest("[data-act='del']");
-        if (delBtn) {
-          const id = Number(delBtn.closest(".task").dataset.id);
-          tasks = tasks.filter(function(t) { return t.id !== id; });
-          renderTasks();
-          try {
+      $("task-list").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const id = Number(btn.closest(".task").dataset.id);
+        try {
+          if (btn.dataset.act === "del") {
+            tasks = tasks.filter((t) => t.id !== id);
+            renderTasks();
             check(await sb.from("family_tasks").delete().eq("id", id));
-          } catch (err) {
-            await refreshTasks();
-            showMsg("Не вдалося видалити задачу");
-          }
-          return;
-        }
-
-        const chk = e.target.closest("[data-act='toggle']");
-        if (chk) {
-          const id = Number(chk.closest(".task").dataset.id);
-          const t = tasks.find(function(t) { return t.id === id; });
-          t.status = chk.checked ? "done" : "todo";
-          renderTasks();
-          try {
+          } else {
+            const t = tasks.find((t) => t.id === id);
+            t.status = NEXT[t.status];
+            renderTasks();
             check(await sb.from("family_tasks").update({ status: t.status }).eq("id", id));
-          } catch (err) {
-            await refreshTasks();
-            showMsg("Не вдалося змінити статус");
           }
+        } catch {
+          await refreshTasks();
+          showMsg("Не вдалося зберегти зміну");
         }
       });
 
-      $("filters").addEventListener("click", function(e) {
+      $("filters").addEventListener("click", (e) => {
         const b = e.target.closest("[data-f]");
         if (!b) return;
         filter = b.dataset.f;
@@ -494,83 +464,33 @@ const LON = 25.14227;
       });
 
       renderFilters();
+      renderTasks();
 
       /* ---------- Нотатки ---------- */
-      function renderNotes() {
-        if (notesArray.length) {
-          $("note-list").innerHTML = notesArray.map(function(n) {
-            return '<li class="task note-item" data-id="' + n.id + '">' +
-              '<span class="text">' + esc(n.text) + '</span>' +
-              '<button class="del" data-act="del-note" aria-label="Видалити нотатку">×</button>' +
-            '</li>';
-          }).join("");
-        } else {
-          $("note-list").innerHTML = '<li class="empty">Нотаток немає.</li>';
-        }
-      }
+      let notesTimer;
 
       async function refreshNotes() {
-        const res = await sb.from("family_notes").select("body").eq("id", 1).maybeSingle();
-        if (res.error) { showMsg("Не вдалося завантажити нотатки"); return; }
-        
-        if (res.data && res.data.body) {
+        if (document.activeElement === notes || notesDirty) return;
+        const { data, error } = await sb.from("family_notes").select("body").eq("id", 1).maybeSingle();
+        if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
+        if (data) notes.value = data.body;
+      }
+
+      notes.addEventListener("input", () => {
+        notesDirty = true;
+        $("notes-state").textContent = "Збереження…";
+        clearTimeout(notesTimer);
+        notesTimer = setTimeout(async () => {
           try {
-            notesArray = JSON.parse(res.data.body);
-            if (!Array.isArray(notesArray)) throw new Error();
-          } catch (err) {
-            notesArray = res.data.body.split('\n')
-              .map(function(text) { return text.trim(); })
-              .filter(function(text) { return text; })
-              .map(function(text) { return { id: Date.now() + Math.random(), text: text }; });
+            check(await sb.from("family_notes")
+              .update({ body: notes.value, updated_at: new Date().toISOString() })
+              .eq("id", 1));
+            notesDirty = false;
+            $("notes-state").textContent = "Збережено";
+          } catch {
+            $("notes-state").textContent = "Не збережено, перевірте зв'язок";
           }
-        } else {
-          notesArray = [];
-        }
-        renderNotes();
-      }
-
-      async function saveNotesToDB() {
-        check(await sb.from("family_notes")
-          .update({ body: JSON.stringify(notesArray), updated_at: new Date().toISOString() })
-          .eq("id", 1));
-      }
-
-      $("note-form").addEventListener("submit", async function(e) {
-        e.preventDefault();
-        const text = $("note-text").value.trim();
-        if (!text) return;
-        
-        const btn = $("note-form").querySelector("button[type=submit]");
-        btn.disabled = true;
-        
-        notesArray.unshift({ id: Date.now(), text: text });
-        $("note-text").value = "";
-        renderNotes();
-        
-        try {
-          await saveNotesToDB();
-        } catch (err) {
-          showMsg("Не вдалося зберегти нотатку");
-          await refreshNotes();
-        } finally {
-          btn.disabled = false;
-        }
-      });
-
-      $("note-list").addEventListener("click", async function(e) {
-        const btn = e.target.closest("[data-act='del-note']");
-        if (!btn) return;
-        
-        const id = Number(btn.closest(".note-item").dataset.id);
-        notesArray = notesArray.filter(function(n) { return n.id !== id; });
-        renderNotes();
-        
-        try {
-          await saveNotesToDB();
-        } catch (err) {
-          showMsg("Не вдалося видалити нотатку");
-          await refreshNotes();
-        }
+        }, 600);
       });
 
       /* ---------- Синхронізація ---------- */
@@ -579,12 +499,12 @@ const LON = 25.14227;
         refreshTasks();
         refreshNotes();
       }
-      setInterval(function() { if (!document.hidden) syncAll(); }, 30000);
-      document.addEventListener("visibilitychange", function() { if (!document.hidden) syncAll(); });
+      setInterval(() => { if (!document.hidden) syncAll(); }, 30000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) syncAll(); });
       init();
 
-      /* ---------- Погода (Open-Meteo) ---------- */
-      const WMO = function(c) {
+      /* ---------- Погода (Open-Meteo, без ключа) ---------- */
+      const WMO = (c) => {
         if (c === 0) return ["☀️", "Ясно"];
         if (c <= 2) return ["🌤️", "Мінлива хмарність"];
         if (c === 3) return ["☁️", "Хмарно"];
@@ -598,40 +518,31 @@ const LON = 25.14227;
       };
 
       async function loadWeather() {
-        const lat = document.body.dataset.lat;
-        const lon = document.body.dataset.lon;
-        const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + 
-          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunset' + 
-          '&timezone=Europe%2FKyiv&forecast_days=7';
-          
+        const { lat, lon } = document.body.dataset;
+        const url =
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunset` +
+          `&timezone=Europe%2FKyiv&forecast_days=7`;
         try {
           const r = await fetch(url);
           if (!r.ok) throw new Error(r.status);
-          const res = await r.json();
-          const d = res.daily;
-          
-          $("weather").innerHTML = d.time.map(function(date, i) {
-            const wmoRes = WMO(d.weather_code[i]);
-            const ico = wmoRes[0];
-            const desc = wmoRes[1];
+          const d = (await r.json()).daily;
+          $("weather").innerHTML = d.time.map((date, i) => {
+            const [ico, desc] = WMO(d.weather_code[i]);
             const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
-            const prob = d.precipitation_probability_max[i] || 0;
-            const sun = d.sunset[i].slice(11, 16);
-            const tMax = Math.round(d.temperature_2m_max[i]);
-            const tMin = Math.round(d.temperature_2m_min[i]);
-            
-            return '<li class="day">' +
-              '<span class="name">' + name + '</span>' +
-              '<span class="ico" aria-hidden="true">' + ico + '</span>' +
-              '<span>' +
-                '<span class="desc">' + desc + '</span><br />' +
-                '<span class="sub">опади ' + prob + '% · <span class="sun">захід ' + sun + '</span></span>' +
-              '</span>' +
-              '<span class="temp">' + tMax + '° <span>' + tMin + '°</span></span>' +
-            '</li>';
+            return `
+              <li class="day">
+                <span class="name">${name}</span>
+                <span class="ico" aria-hidden="true">${ico}</span>
+                <span>
+                  <span class="desc">${desc}</span><br />
+                  <span class="sub">опади ${d.precipitation_probability_max[i] ?? 0}% · <span class="sun">захід ${d.sunset[i].slice(11, 16)}</span></span>
+                </span>
+                <span class="temp">${Math.round(d.temperature_2m_max[i])}° <span>${Math.round(d.temperature_2m_min[i])}°</span></span>
+              </li>`;
           }).join("");
-        } catch (err) {
-          $("weather").innerHTML = '<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>';
+        } catch {
+          $("weather").innerHTML = `<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>`;
         }
       }
       loadWeather();
