@@ -22,26 +22,18 @@
   </head>
   <body>
     <header class="top">
-      <div class="top-row">
-        <h1>Родинна дошка</h1>
-        <div class="tools">
-          <p id="today"></p>
-          <button id="theme" type="button" class="ghost"></button>
-          <button id="logout" type="button" class="ghost" hidden>Вийти</button>
-        </div>
+      <h1>Родинна дошка</h1>
+      <div class="tools">
+        <p id="today"></p>
+        <button id="theme" type="button" class="ghost"></button>
+        <button id="logout" type="button" class="ghost" hidden>Вийти</button>
       </div>
-      <!-- Вкладки, які видно лише на мобільних -->
-      <nav class="mobile-tabs">
-        <button class="tab-btn active" data-target="col-tasks">Задачі</button>
-        <button class="tab-btn" data-target="col-notes">Нотатки</button>
-        <button class="tab-btn" data-target="col-weather">Погода</button>
-      </nav>
     </header>
     <p id="msg" class="msg" role="status"></p>
 
     <main class="board">
       <!-- 1. Задачі -->
-      <section id="col-tasks" class="col active" aria-labelledby="h-tasks">
+      <section class="col" aria-labelledby="h-tasks">
         <h2 id="h-tasks">Задачі</h2>
 
         <form id="task-form" class="task-form">
@@ -57,15 +49,12 @@
           </div>
         </form>
 
-        <div class="filters-group">
-          <div id="filters-person" class="filters" role="group" aria-label="Фільтр за людиною"></div>
-          <div id="filters-status" class="filters" role="group" aria-label="Фільтр за статусом"></div>
-        </div>
+        <div id="filters" class="filters" role="group" aria-label="Фільтр за людиною"></div>
         <ul id="task-list" class="task-list"></ul>
       </section>
 
       <!-- 2. Нотатки -->
-      <section id="col-notes" class="col" aria-labelledby="h-notes">
+      <section class="col" aria-labelledby="h-notes">
         <h2 id="h-notes">Нотатки</h2>
 
         <form id="note-form" class="note-form">
@@ -79,7 +68,7 @@
       </section>
 
       <!-- 3. Погода -->
-      <section id="col-weather" class="col" aria-labelledby="h-weather">
+      <section class="col" aria-labelledby="h-weather">
         <div class="col-head">
           <h2 id="h-weather">Погода на 7 днів</h2>
           <select id="wmodel" aria-label="Модель прогнозу"></select>
@@ -153,8 +142,7 @@
         --done-bg: #1f4034;
       }
       * { box-sizing: border-box; }
-      
-      html, body { height: 100%; height: 100dvh; overflow: hidden; }
+      html, body { height: 100%; }
       body {
         margin: 0;
         padding: 10px 20px 16px;
@@ -169,20 +157,20 @@
       h1, h2, h3 { font-family: "Literata", Georgia, serif; margin: 0; }
       h1 { font-size: 22px; }
       h2 { font-size: 18px; margin-bottom: 10px; }
-      
-      .top { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-      .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
       .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
       .tools p { margin: 0; color: var(--muted); font-size: 14px; }
-      .mobile-tabs { display: none; }
-      
       .muted { color: var(--muted); }
       .small { font-size: 13px; }
       .msg { margin: -4px 0 0; color: var(--p1); font-size: 13px; }
       .msg:empty { display: none; }
       .sr {
-        position: absolute; width: 1px; height: 1px; overflow: hidden;
-        clip: rect(0 0 0 0); white-space: nowrap;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
 
       .board {
@@ -235,22 +223,37 @@
       .ghost:disabled { opacity: .4; cursor: default; }
       .ghost[hidden] { display: none; }
       .link {
-        background: none; border: 0; padding: 4px 0; color: var(--muted);
-        cursor: pointer; font-size: 12.5px; text-decoration: underline;
+        background: none;
+        border: 0;
+        padding: 4px 0;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12.5px;
+        text-decoration: underline;
       }
       .link:hover { color: var(--ink); }
 
       /* Вхід */
       .login {
-        position: fixed; inset: 0; z-index: 10; display: flex;
-        align-items: center; justify-content: center; padding: 20px;
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
         background: var(--bg);
       }
       .login[hidden] { display: none; }
       .login-card {
-        width: min(360px, 100%); display: flex; flex-direction: column;
-        gap: 10px; padding: 24px; background: var(--surface);
-        border: 1px solid var(--line); border-radius: 10px;
+        width: min(360px, 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 24px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
       }
       .login-card h2 { margin-bottom: 4px; }
       .login-card .msg { margin: 0; }
@@ -259,20 +262,27 @@
       .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
       .task-form .row { display: flex; gap: 8px; }
       .task-form select { flex: 1; min-width: 0; }
-      
-      .filters-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-      .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+      .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
       .chip {
-        border: 1px solid var(--line); background: transparent;
-        border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13px;
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 999px;
+        padding: 3px 12px;
+        cursor: pointer;
+        font-size: 13px;
       }
       .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .task {
-        display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
-        padding: 8px 12px; margin-bottom: 8px; border: 2px solid var(--p2);
-        border-radius: 10px; background: var(--t2);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border: 2px solid var(--p2);
+        border-radius: 10px;
+        background: var(--t2);
       }
       .task[data-p="1"] { border-color: var(--p1); background: var(--t1); }
       .task[data-p="3"] { border-color: var(--p3); background: var(--t3); }
@@ -281,8 +291,12 @@
       .task .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
       .task[data-s="done"] .text { text-decoration: line-through; color: var(--muted); }
       .status {
-        border: 1px solid var(--line); background: var(--bg);
-        border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        cursor: pointer;
       }
       .task[data-s="doing"] .status { background: var(--doing-bg); border-color: var(--p2); }
       .task[data-s="done"] .status { background: var(--done-bg); border-color: var(--p3); }
@@ -292,15 +306,6 @@
       }
       .del:hover { color: var(--p1); }
       .empty { color: var(--muted); padding: 8px 0; }
-      
-      .divider {
-        text-align: center; font-size: 12px; color: var(--muted);
-        margin: 16px 0 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-      }
-      .divider::before, .divider::after {
-        content: ""; display: inline-block; width: 30px; height: 1px;
-        background: var(--line); vertical-align: middle; margin: 0 8px;
-      }
 
       /* Нотатки */
       .note-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
@@ -310,30 +315,55 @@
       #notes-count { margin: 0 0 8px; min-height: 1.3em; }
       .note-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .note {
-        padding: 10px 12px; margin-bottom: 8px; background: var(--field);
-        border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 6px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--line);
+        border-radius: 6px;
       }
       .note.pinned { border-left-color: var(--accent); }
       .note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
       .note-meta {
-        display: flex; justify-content: space-between; align-items: center;
-        gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 12.5px; color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+        font-size: 12.5px;
+        color: var(--muted);
       }
       .note-actions { display: flex; gap: 14px; }
       .note.editing textarea { width: 100%; min-height: 90px; margin-bottom: 6px; resize: vertical; line-height: 1.5; }
 
       /* Погода */
       .weather {
-        list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0;
-        display: grid; grid-auto-rows: minmax(42px, 1fr); overflow-y: auto;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-auto-rows: minmax(52px, 1fr);
+        overflow-y: auto;
       }
       .weather > li { display: flex; border-bottom: 1px solid var(--line); }
       .weather > li:last-child { border-bottom: 0; }
-      #w-src { margin: 8px 0 0; flex-shrink: 0; }
+      #w-src { margin: 8px 0 0; }
       .day {
-        flex: 1; width: 100%; display: grid; grid-template-columns: 58px 30px 1fr auto 20px;
-        align-items: center; gap: 8px; padding: 4px 6px; border: 0; border-radius: 8px;
-        background: none; text-align: left; cursor: pointer;
+        flex: 1;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 58px 30px 1fr auto 20px;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        text-align: left;
+        cursor: pointer;
       }
       .day:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
       .day .mid, .day .end { display: flex; flex-direction: column; line-height: 1.3; }
@@ -349,14 +379,23 @@
 
       /* Деталі дня */
       dialog.dlg {
-        width: min(520px, calc(100vw - 24px)); max-height: min(700px, calc(100dvh - 24px));
-        padding: 0; border: 1px solid var(--line); border-radius: 12px;
-        background: var(--surface); color: var(--ink); overflow: auto;
+        width: min(520px, calc(100vw - 24px));
+        max-height: min(700px, calc(100dvh - 24px));
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--ink);
+        overflow: auto;
       }
       dialog.dlg[open] { display: flex; flex-direction: column; }
       dialog.dlg::backdrop { background: rgba(0, 0, 0, .5); }
       .dlg-head {
-        display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
       }
       .dlg-head h3 { flex: 1; font-size: 18px; }
       .dlg-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 16px 16px; }
@@ -368,8 +407,13 @@
       .stat .s { font-size: 12px; color: var(--muted); }
       .hours { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 200px; overflow-y: auto; position: relative; }
       .hr {
-        display: grid; grid-template-columns: 44px 26px 40px 1fr auto; align-items: center;
-        gap: 8px; padding: 6px 6px; border-bottom: 1px solid var(--line); font-size: 13.5px;
+        display: grid;
+        grid-template-columns: 44px 26px 40px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 6px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13.5px;
       }
       .hr .ico { text-align: center; }
       .hr .tmp { font-weight: 600; }
@@ -377,34 +421,22 @@
       .hr .wd { text-align: right; white-space: nowrap; }
       .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px; font-weight: 600; }
 
-      /* --- Мобільна оптимізація --- */
       @media (max-width: 960px) {
+        html, body { height: auto; }
         body { padding: 12px; }
-        .mobile-tabs {
-          display: flex; background: var(--surface); padding: 4px;
-          border-radius: 8px; border: 1px solid var(--line); gap: 4px; flex-shrink: 0;
-        }
-        .tab-btn {
-          flex: 1; background: transparent; border: none; padding: 8px 0;
-          border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600;
-          color: var(--muted); font-size: 14px; transition: background-color 0.2s, color 0.2s;
-        }
-        .tab-btn.active { background: var(--field); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        
-        .board { display: flex; position: relative; }
-        .col { display: none; flex: 1; width: 100%; position: absolute; inset: 0; }
-        .col.active { display: flex; }
-        
-        .task-list, .note-list, .weather { overflow-y: auto; flex: 1; min-height: 0; }
-        .day { padding: 4px 6px; }
+        .board { grid-template-columns: 1fr; }
+        .col { min-height: 320px; }
+        .task-list, .note-list { overflow: visible; }
+        .weather { overflow: visible; grid-auto-rows: auto; }
+        .day { padding: 8px 6px; }
       }
     </style>
 
     <script is:inline>
-      /* ВАШІ НАЛАШТУВАННЯ */
+      /* ВАШІ НАЛАШТУВАННЯ ТЕПЕР ТУТ */
       const SB_URL = "https://mlkdphygsdfcanztbtez.supabase.co";
       const SB_KEY = "sb_publishable_yodMR9SylDv9tF51Y7q43A_sqak1u8o";
-      const LAT = 48.24872;
+      const LAT = 48.24872; // Тюдів
       const LON = 25.14227;
       const PEOPLE = ["Олександр", "Людмила", "Максим", "Антоніна"];
 
@@ -415,23 +447,13 @@
       const T_NOTES = "family_note_items";
 
       const $ = (id) => document.getElementById(id);
+      
+      // Захищена функція екранування (змінено кодування спецсимволів для безпеки Astro)
       const esc = (s) => String(s).replace(/[&\x3C\x3E"']/g, (c) => ({ "&": "&amp;", "\x3C": "&lt;", "\x3E": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      
       const check = ({ error }) => { if (error) throw error; };
 
       const sb = supabase.createClient(SB_URL, SB_KEY);
-
-      /* ---------- Мобільні вкладки ---------- */
-      const tabs = document.querySelectorAll(".tab-btn");
-      const cols = document.querySelectorAll(".board .col");
-      
-      tabs.forEach(tab => {
-        tab.addEventListener("click", () => {
-          tabs.forEach(t => t.classList.remove("active"));
-          cols.forEach(c => c.classList.remove("active"));
-          tab.classList.add("active");
-          $(tab.dataset.target).classList.add("active");
-        });
-      });
 
       /* ---------- Тема ---------- */
       const themeBtn = $("theme");
@@ -461,8 +483,7 @@
       /* ---------- Вхід ---------- */
       let loggedIn = false;
       let tasks = [];
-      let personFilter = "all";
-      let statusFilter = "all";
+      let filter = "all";
       let notes = [];
       let noteQuery = "";
       let editingId = null;
@@ -495,8 +516,12 @@
 
       sb.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
-          tasks = []; notes = []; editingId = null;
-          renderTasks(); renderNotes(); setAuthUi(false);
+          tasks = [];
+          notes = [];
+          editingId = null;
+          renderTasks();
+          renderNotes();
+          setAuthUi(false);
         }
       });
 
@@ -504,57 +529,29 @@
       $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
 
       function renderFilters() {
-        const pItems = ["all", ...PEOPLE];
-        $("filters-person").innerHTML = pItems
-          .map((p) => `<button type="button" class="chip" data-fp="${p}" aria-pressed="${p === personFilter}">${p === "all" ? "Всі люди" : p}</button>`)
-          .join("");
-
-        const sItems = [
-          { k: "all", v: "Всі статуси" },
-          { k: "todo", v: "До виконання" },
-          { k: "doing", v: "В роботі" },
-          { k: "done", v: "Готово" }
-        ];
-        $("filters-status").innerHTML = sItems
-          .map((s) => `<button type="button" class="chip" data-fs="${s.k}" aria-pressed="${s.k === statusFilter}">${s.v}</button>`)
+        const items = ["all", ...PEOPLE];
+        $("filters").innerHTML = items
+          .map((p) => `<button type="button" class="chip" data-f="${p}" aria-pressed="${p === filter}">${p === "all" ? "Усі" : p}</button>`)
           .join("");
       }
 
-      const taskHtml = (t) => `
-        <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
-          <span class="text">${esc(t.text)}</span>
-          <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
-          <div class="meta">
-            <strong>${esc(t.person)}</strong>
-            <span class="sr">Пріоритет: ${PRIORITIES[t.priority]}</span>
-            <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
-          </div>
-        </li>`;
-
       function renderTasks() {
-        const visible = tasks.filter((t) => 
-          (personFilter === "all" || t.person === personFilter) &&
-          (statusFilter === "all" || t.status === statusFilter)
-        );
+        const visible = tasks
+          .filter((t) => filter === "all" || t.person === filter)
+          .sort((a, b) => (a.status === "done") - (b.status === "done") || a.priority - b.priority || a.id - b.id);
 
-        const activeTasks = visible
-          .filter((t) => t.status !== "done")
-          .sort((a, b) => a.priority - b.priority || a.id - b.id);
-          
-        const doneTasks = visible
-          .filter((t) => t.status === "done")
-          .sort((a, b) => a.priority - b.priority || b.id - a.id);
-
-        let html = "";
-        if (activeTasks.length) {
-          html += activeTasks.map(taskHtml).join("");
-        }
-        if (doneTasks.length) {
-          if (activeTasks.length) html += `<li class="divider">Виконані</li>`;
-          html += doneTasks.map(taskHtml).join("");
-        }
-
-        $("task-list").innerHTML = html || `<li class="empty">Задач немає.</li>`;
+        $("task-list").innerHTML = visible.length
+          ? visible.map((t) => `
+            <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
+              <span class="text">${esc(t.text)}</span>
+              <button class="del" data-act="del" aria-label="Видалити задачу">×</button>
+              <div class="meta">
+                <strong>${esc(t.person)}</strong>
+                <span class="sr">Пріоритет: ${PRIORITIES[t.priority]}</span>
+                <button class="status" data-act="next" title="Змінити статус">${STATUSES[t.status]}</button>
+              </div>
+            </li>`).join("")
+          : `<li class="empty">Задач немає. Додайте першу вище.</li>`;
       }
 
       async function refreshTasks() {
@@ -572,12 +569,17 @@
         btn.disabled = true;
         try {
           check(await sb.from(T_TASKS).insert({
-            text, person: $("task-person").value, priority: Number($("task-priority").value),
+            text,
+            person: $("task-person").value,
+            priority: Number($("task-priority").value),
           }));
           $("task-text").value = "";
           await refreshTasks();
-        } catch { showMsg("Не вдалося додати задачу"); } 
-        finally { btn.disabled = false; }
+        } catch {
+          showMsg("Не вдалося додати задачу");
+        } finally {
+          btn.disabled = false;
+        }
       });
 
       $("task-list").addEventListener("click", async (e) => {
@@ -601,19 +603,16 @@
         }
       });
 
-      $("filters-person").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fp]");
-        if (!b) return; personFilter = b.dataset.fp;
-        renderFilters(); renderTasks();
-      });
-      
-      $("filters-status").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fs]");
-        if (!b) return; statusFilter = b.dataset.fs;
-        renderFilters(); renderTasks();
+      $("filters").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-f]");
+        if (!b) return;
+        filter = b.dataset.f;
+        renderFilters();
+        renderTasks();
       });
 
-      renderFilters(); renderTasks();
+      renderFilters();
+      renderTasks();
 
       /* ---------- Нотатки (список) ---------- */
       function fmtDate(iso) {
@@ -680,8 +679,11 @@
           check(await sb.from(T_NOTES).insert({ body }));
           $("note-text").value = "";
           await refreshNotes();
-        } catch { showMsg("Не вдалося додати нотатку"); } 
-        finally { btn.disabled = false; }
+        } catch {
+          showMsg("Не вдалося додати нотатку");
+        } finally {
+          btn.disabled = false;
+        }
       });
 
       $("note-text").addEventListener("keydown", (e) => {
@@ -689,7 +691,8 @@
       });
 
       $("note-search").addEventListener("input", (e) => {
-        noteQuery = e.target.value; renderNotes();
+        noteQuery = e.target.value;
+        renderNotes();
       });
 
       $("note-list").addEventListener("click", async (e) => {
@@ -701,22 +704,27 @@
         const act = btn.dataset.act;
         try {
           if (act === "pin") {
-            n.pinned = !n.pinned; renderNotes();
+            n.pinned = !n.pinned;
+            renderNotes();
             check(await sb.from(T_NOTES).update({ pinned: n.pinned }).eq("id", id));
           } else if (act === "edit") {
-            editingId = id; renderNotes();
+            editingId = id;
+            renderNotes();
             const ta = $("note-list").querySelector(".edit-text");
             if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
           } else if (act === "cancel") {
-            editingId = null; renderNotes();
+            editingId = null;
+            renderNotes();
           } else if (act === "save") {
             const body = li.querySelector(".edit-text").value.trim();
             if (!body) return;
             check(await sb.from(T_NOTES).update({ body, updated_at: new Date().toISOString() }).eq("id", id));
-            editingId = null; await refreshNotes();
+            editingId = null;
+            await refreshNotes();
           } else if (act === "del") {
             if (!confirm("Видалити нотатку?")) return;
-            notes = notes.filter((x) => x.id !== id); renderNotes();
+            notes = notes.filter((x) => x.id !== id);
+            renderNotes();
             check(await sb.from(T_NOTES).delete().eq("id", id));
           }
         } catch {
@@ -730,21 +738,27 @@
       /* ---------- Синхронізація ---------- */
       function syncAll() {
         if (!loggedIn) return;
-        refreshTasks(); refreshNotes();
+        refreshTasks();
+        refreshNotes();
       }
       setInterval(() => { if (!document.hidden) syncAll(); }, 30000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) syncAll(); });
       init();
 
-      /* ---------- Погода ---------- */
+      /* ---------- Погода (Open-Meteo, без ключа) ---------- */
       const MODELS = {
-        best_match: "Авто", icon_seamless: "ICON (DWD)",
-        ecmwf_ifs025: "ECMWF", gfs_seamless: "GFS (NOAA)",
+        best_match: "Авто",
+        icon_seamless: "ICON (DWD)",
+        ecmwf_ifs025: "ECMWF",
+        gfs_seamless: "GFS (NOAA)",
       };
       const wsel = $("wmodel");
       wsel.innerHTML = Object.entries(MODELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
       let wmodel = "best_match";
-      try { const s = localStorage.getItem("family.wmodel"); if (s && MODELS[s]) wmodel = s; } catch {}
+      try {
+        const s = localStorage.getItem("family.wmodel");
+        if (s && MODELS[s]) wmodel = s;
+      } catch {}
       wsel.value = wmodel;
       wsel.addEventListener("change", () => {
         wmodel = wsel.value;
@@ -767,13 +781,17 @@
 
       const DIRS = ["Пн", "ПнСх", "Сх", "ПдСх", "Пд", "ПдЗх", "Зх", "ПнЗх"];
       const num = (v, n = 0) => (v == null ? "—" : Number(v).toFixed(n));
-      const windTxt = (v, dir) => v == null ? "—" : `${Math.round(v)} м/с${dir != null ? " " + DIRS[Math.round(dir / 45) % 8] : ""}`;
+      const windTxt = (v, dir) =>
+        v == null ? "—" : `${Math.round(v)} м/с${dir != null ? " " + DIRS[Math.round(dir / 45) % 8] : ""}`;
       const durTxt = (s) => (s == null ? "—" : `${Math.floor(s / 3600)} г ${Math.floor((s % 3600) / 60)} хв`);
 
-      let wdata = null; let wIndex = 0; const dlg = $("day-dlg");
+      let wdata = null;
+      let wIndex = 0;
+      const dlg = $("day-dlg");
 
       async function loadWeather() {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+        const url =
+          `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,` +
           `precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,daylight_duration,sunrise,sunset` +
           `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m` +
@@ -781,18 +799,25 @@
         try {
           const r = await fetch(url);
           if (!r.ok) throw new Error(r.status);
-          wdata = await r.json(); const d = wdata.daily;
+          wdata = await r.json();
+          const d = wdata.daily;
           $("weather").innerHTML = d.time.map((date, i) => {
             const [ico, desc] = WMO(d.weather_code[i]);
             const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
-            const prob = d.precipitation_probability_max?.[i]; const mm = d.precipitation_sum?.[i];
+            const prob = d.precipitation_probability_max?.[i];
+            const mm = d.precipitation_sum?.[i];
             const rain = [prob != null ? `${prob}%` : null, mm != null ? `${mm.toFixed(1)} мм` : null].filter(Boolean).join(" · ") || "—";
-            const rise = d.sunrise[i].slice(11, 16); const set = d.sunset[i].slice(11, 16);
+            const rise = d.sunrise[i].slice(11, 16);
+            const set = d.sunset[i].slice(11, 16);
             return `
               <li>
                 <button type="button" class="day" data-i="${i}" aria-label="Детальний прогноз: ${name}">
-                  <span class="name">${name}</span><span class="ico" aria-hidden="true">${ico}</span>
-                  <span class="mid"><span class="desc">${desc}</span><span class="sub">опади ${rain}</span></span>
+                  <span class="name">${name}</span>
+                  <span class="ico" aria-hidden="true">${ico}</span>
+                  <span class="mid">
+                    <span class="desc">${desc}</span>
+                    <span class="sub">опади ${rain}</span>
+                  </span>
                   <span class="end">
                     <span class="temp">${Math.round(d.temperature_2m_max[i])}° <span>${Math.round(d.temperature_2m_min[i])}°</span></span>
                     <span class="sub sun" title="Схід ${rise}, захід ${set}"><span class="sr">Схід</span>↑ ${rise} <span class="sr">захід</span>↓ ${set}</span>
@@ -810,46 +835,67 @@
         }
       }
 
+      /* ---------- Деталі дня ---------- */
       function openDay(i) {
-        if (!wdata) return; wIndex = i;
-        const d = wdata.daily; const h = wdata.hourly; const date = d.time[i];
+        if (!wdata) return;
+        wIndex = i;
+        const d = wdata.daily;
+        const h = wdata.hourly;
+        const date = d.time[i];
         const [ico, desc] = WMO(d.weather_code[i]);
+
         const long = new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "long", day: "numeric", month: "long" });
         $("dlg-title").textContent = long.charAt(0).toUpperCase() + long.slice(1);
-        $("dlg-prev").disabled = i === 0; $("dlg-next").disabled = i === d.time.length - 1;
+        $("dlg-prev").disabled = i === 0;
+        $("dlg-next").disabled = i === d.time.length - 1;
 
-        const prob = d.precipitation_probability_max?.[i]; const mm = d.precipitation_sum?.[i]; const gust = d.wind_gusts_10m_max?.[i];
+        const prob = d.precipitation_probability_max?.[i];
+        const mm = d.precipitation_sum?.[i];
+        const gust = d.wind_gusts_10m_max?.[i];
         const stats = [
-          ["Температура", `${num(d.temperature_2m_max[i])}° / ${num(d.temperature_2m_min[i])}°`, `відчувається ${num(d.apparent_temperature_max?.[i])}° / ${num(d.apparent_temperature_min?.[i])}°`],
+          ["Температура", `${num(d.temperature_2m_max[i])}° / ${num(d.temperature_2m_min[i])}°`,
+            `відчувається ${num(d.apparent_temperature_max?.[i])}° / ${num(d.apparent_temperature_min?.[i])}°`],
           ["Опади", prob != null ? `${prob}%` : "—", mm != null ? `${mm.toFixed(1)} мм за день` : ""],
           ["Вітер", `до ${windTxt(d.wind_speed_10m_max?.[i])}`, gust != null ? `пориви до ${Math.round(gust)} м/с` : ""],
-          ["Сонце", `↑ ${d.sunrise[i].slice(11, 16)}  ↓ ${d.sunset[i].slice(11, 16)}`, `світловий день ${durTxt(d.daylight_duration?.[i])}`],
+          ["Сонце", `↑ ${d.sunrise[i].slice(11, 16)}  ↓ ${d.sunset[i].slice(11, 16)}`,
+            `світловий день ${durTxt(d.daylight_duration?.[i])}`],
         ];
 
         const nowKey = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Kyiv" }).slice(0, 13).replace(" ", "T");
         const rows = [];
         h.time.forEach((t, k) => {
           if (!t.startsWith(date)) return;
-          const [hi] = WMO(h.weather_code[k]); const p = h.precipitation_probability?.[k]; const q = h.precipitation?.[k];
+          const [hi] = WMO(h.weather_code[k]);
+          const p = h.precipitation_probability?.[k];
+          const q = h.precipitation?.[k];
           const pr = [p != null ? `${p}%` : null, q > 0 ? `${q.toFixed(1)} мм` : null].filter(Boolean).join(" · ") || "—";
           rows.push(`
             <li class="hr${t.startsWith(nowKey) ? " now" : ""}">
-              <span class="t">${t.slice(11, 16)}</span><span class="ico" aria-hidden="true">${hi}</span>
-              <span class="tmp">${num(h.temperature_2m[k])}°</span><span class="pr">${pr}</span>
+              <span class="t">${t.slice(11, 16)}</span>
+              <span class="ico" aria-hidden="true">${hi}</span>
+              <span class="tmp">${num(h.temperature_2m[k])}°</span>
+              <span class="pr">${pr}</span>
               <span class="wd">${windTxt(h.wind_speed_10m?.[k], h.wind_direction_10m?.[k])}</span>
             </li>`);
         });
 
         $("dlg-body").innerHTML = `
           <p class="dlg-sum">${ico} ${desc}</p>
-          <div class="stats">${stats.map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("")}</div>
+          <div class="stats">
+            ${stats.map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("")}
+          </div>
           <ul class="hours">${rows.join("")}</ul>`;
+
         if (!dlg.open) dlg.showModal();
-        const box = $("dlg-body").querySelector(".hours"); const cur = box.querySelector(".hr.now");
+        const box = $("dlg-body").querySelector(".hours");
+        const cur = box.querySelector(".hr.now");
         box.scrollTop = cur ? Math.max(0, cur.offsetTop - box.clientHeight / 2 + cur.clientHeight / 2) : 0;
       }
 
-      $("weather").addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) openDay(Number(b.dataset.i)); });
+      $("weather").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-i]");
+        if (b) openDay(Number(b.dataset.i));
+      });
       $("dlg-prev").addEventListener("click", () => openDay(wIndex - 1));
       $("dlg-next").addEventListener("click", () => openDay(wIndex + 1));
       $("dlg-close").addEventListener("click", () => dlg.close());
