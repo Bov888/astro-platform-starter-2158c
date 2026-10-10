@@ -2,7 +2,7 @@
 <html lang="uk">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Родинна дошка</title>
     <script is:inline>
       (function () {
@@ -30,7 +30,7 @@
           <button id="logout" type="button" class="ghost" hidden>Вийти</button>
         </div>
       </div>
-      <!-- Вкладки, які видно лише на мобільних -->
+      <!-- Вкладки (мобільні та горизонтальний екран) -->
       <nav class="mobile-tabs">
         <button class="tab-btn active" data-target="col-tasks">Задачі</button>
         <button class="tab-btn" data-target="col-notes">Нотатки</button>
@@ -57,9 +57,9 @@
           </div>
         </form>
 
-        <div class="filters-group">
-          <div id="filters-person" class="filters" role="group" aria-label="Фільтр за людиною"></div>
-          <div id="filters-status" class="filters" role="group" aria-label="Фільтр за статусом"></div>
+        <div class="filters-row">
+          <select id="filter-person" aria-label="Фільтр за людиною"></select>
+          <select id="filter-status" aria-label="Фільтр за статусом"></select>
         </div>
         <ul id="task-list" class="task-list"></ul>
       </section>
@@ -153,11 +153,15 @@
         --done-bg: #1f4034;
       }
       * { box-sizing: border-box; }
-      
+
       html, body { height: 100%; height: 100dvh; overflow: hidden; }
       body {
         margin: 0;
-        padding: 10px 20px 16px;
+        padding:
+          max(10px, env(safe-area-inset-top))
+          max(20px, env(safe-area-inset-right))
+          max(16px, env(safe-area-inset-bottom))
+          max(20px, env(safe-area-inset-left));
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -169,13 +173,13 @@
       h1, h2, h3 { font-family: "Literata", Georgia, serif; margin: 0; }
       h1 { font-size: 22px; }
       h2 { font-size: 18px; margin-bottom: 10px; }
-      
+
       .top { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
       .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
       .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
       .tools p { margin: 0; color: var(--muted); font-size: 14px; }
       .mobile-tabs { display: none; }
-      
+
       .muted { color: var(--muted); }
       .small { font-size: 13px; }
       .msg { margin: -4px 0 0; color: var(--p1); font-size: 13px; }
@@ -193,6 +197,7 @@
         gap: 16px;
       }
       .col {
+        position: relative;
         min-height: 0;
         display: flex;
         flex-direction: column;
@@ -244,7 +249,7 @@
       .login {
         position: fixed; inset: 0; z-index: 10; display: flex;
         align-items: center; justify-content: center; padding: 20px;
-        background: var(--bg);
+        background: var(--bg); overflow-y: auto;
       }
       .login[hidden] { display: none; }
       .login-card {
@@ -256,17 +261,12 @@
       .login-card .msg { margin: 0; }
 
       /* Задачі */
-      .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+      .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
       .task-form .row { display: flex; gap: 8px; }
       .task-form select { flex: 1; min-width: 0; }
-      
-      .filters-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-      .filters { display: flex; flex-wrap: wrap; gap: 6px; }
-      .chip {
-        border: 1px solid var(--line); background: transparent;
-        border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13px;
-      }
-      .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+      .filters-row { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
+      .filters-row select { flex: 1; min-width: 0; }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .task {
@@ -278,7 +278,7 @@
       .task[data-p="3"] { border-color: var(--p3); background: var(--t3); }
       .task[data-s="done"] { opacity: .65; }
       .task .text { font-weight: 500; overflow-wrap: anywhere; }
-      .task .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+      .task .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); position: relative; }
       .task[data-s="done"] .text { text-decoration: line-through; color: var(--muted); }
       .status {
         border: 1px solid var(--line); background: var(--bg);
@@ -292,7 +292,7 @@
       }
       .del:hover { color: var(--p1); }
       .empty { color: var(--muted); padding: 8px 0; }
-      
+
       .divider {
         text-align: center; font-size: 12px; color: var(--muted);
         margin: 16px 0 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
@@ -303,11 +303,11 @@
       }
 
       /* Нотатки */
-      .note-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+      .note-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
       .note-form textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
       .note-form .btn { align-self: flex-end; }
-      #note-search { margin-bottom: 6px; }
-      #notes-count { margin: 0 0 8px; min-height: 1.3em; }
+      #note-search { margin-bottom: 6px; flex-shrink: 0; }
+      #notes-count { margin: 0 0 8px; min-height: 1.3em; flex-shrink: 0; }
       .note-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .note {
         padding: 10px 12px; margin-bottom: 8px; background: var(--field);
@@ -357,6 +357,7 @@
       dialog.dlg::backdrop { background: rgba(0, 0, 0, .5); }
       .dlg-head {
         display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line);
+        flex-shrink: 0;
       }
       .dlg-head h3 { flex: 1; font-size: 18px; }
       .dlg-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 16px 16px; }
@@ -377,9 +378,15 @@
       .hr .wd { text-align: right; white-space: nowrap; }
       .hr.now { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 6px; font-weight: 600; }
 
-      /* --- Мобільна оптимізація --- */
-      @media (max-width: 960px) {
-        body { padding: 12px; }
+      /* --- Вкладки: вузькі екрани АБО низькі (горизонтальний телефон) --- */
+      @media (max-width: 960px), (max-height: 500px) {
+        body {
+          padding:
+            max(10px, env(safe-area-inset-top))
+            max(12px, env(safe-area-inset-right))
+            max(12px, env(safe-area-inset-bottom))
+            max(12px, env(safe-area-inset-left));
+        }
         .mobile-tabs {
           display: flex; background: var(--surface); padding: 4px;
           border-radius: 8px; border: 1px solid var(--line); gap: 4px; flex-shrink: 0;
@@ -390,13 +397,47 @@
           color: var(--muted); font-size: 14px; transition: background-color 0.2s, color 0.2s;
         }
         .tab-btn.active { background: var(--field); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        
-        .board { display: flex; position: relative; }
-        .col { display: none; flex: 1; width: 100%; position: absolute; inset: 0; }
+
+        .board { display: block; position: relative; }
+        .col { display: none; position: absolute; inset: 0; width: 100%; height: 100%; }
         .col.active { display: flex; }
-        
-        .task-list, .note-list, .weather { overflow-y: auto; flex: 1; min-height: 0; }
-        .day { padding: 4px 6px; }
+        .col > h2 { display: none; }
+      }
+
+      /* --- Горизонтальний телефон / низький екран --- */
+      @media (max-height: 500px) {
+        body { gap: 6px; }
+        .top { flex-direction: row; align-items: center; gap: 10px; }
+        .top-row { width: auto; flex: 0 0 auto; flex-wrap: nowrap; gap: 10px; }
+        h1 { font-size: 17px; white-space: nowrap; }
+        .tools #today { display: none; }
+        .mobile-tabs { flex: 1; min-width: 0; }
+        .tab-btn { padding: 5px 0; }
+
+        /* Вся колонка прокручується, а не лише список */
+        .col { padding: 10px 12px; overflow-y: auto; overscroll-behavior: contain; }
+        .task-list, .note-list { flex: none; overflow: visible; min-height: auto; }
+        .weather { flex: none; overflow: visible; grid-auto-rows: minmax(40px, auto); }
+        .col-head { margin-bottom: 4px; }
+
+        /* Форми в один ряд */
+        .task-form { flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+        .task-form input { flex: 2 1 180px; min-width: 0; }
+        .task-form .row { flex: 3 1 280px; }
+        .filters-row { margin-bottom: 8px; }
+        .note-form { flex-direction: row; align-items: flex-end; margin-bottom: 8px; }
+        .note-form textarea { flex: 1; min-height: 40px; height: 40px; }
+        .note-form .btn { align-self: flex-end; }
+        #notes-count { margin-bottom: 4px; }
+        .divider { margin: 10px 0 6px; }
+
+        /* Деталі дня: ліворуч підсумок, праворуч години */
+        dialog.dlg { width: min(780px, calc(100vw - 24px)); max-height: calc(100dvh - 16px); }
+        .dlg-head { padding: 8px 12px; }
+        .dlg-body { flex-direction: row; gap: 12px; padding: 10px 12px; overflow: hidden; }
+        .dlg-side { flex: 0 0 250px; overflow-y: auto; }
+        .stats { grid-template-columns: 1fr 1fr; margin-bottom: 0; }
+        .hours { min-height: 0; }
       }
     </style>
 
@@ -417,21 +458,26 @@
       const $ = (id) => document.getElementById(id);
       const esc = (s) => String(s).replace(/[&\x3C\x3E"']/g, (c) => ({ "&": "&amp;", "\x3C": "&lt;", "\x3E": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const check = ({ error }) => { if (error) throw error; };
+      const store = {
+        get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+      };
 
       const sb = supabase.createClient(SB_URL, SB_KEY);
 
-      /* ---------- Мобільні вкладки ---------- */
+      /* ---------- Вкладки ---------- */
       const tabs = document.querySelectorAll(".tab-btn");
       const cols = document.querySelectorAll(".board .col");
-      
-      tabs.forEach(tab => {
-        tab.addEventListener("click", () => {
-          tabs.forEach(t => t.classList.remove("active"));
-          cols.forEach(c => c.classList.remove("active"));
-          tab.classList.add("active");
-          $(tab.dataset.target).classList.add("active");
-        });
-      });
+
+      function showTab(id) {
+        tabs.forEach((t) => t.classList.toggle("active", t.dataset.target === id));
+        cols.forEach((c) => c.classList.toggle("active", c.id === id));
+      }
+      tabs.forEach((tab) => tab.addEventListener("click", () => {
+        showTab(tab.dataset.target);
+        store.set("family.tab", tab.dataset.target);
+      }));
+      { const saved = store.get("family.tab"); if (saved && $(saved)) showTab(saved); }
 
       /* ---------- Тема ---------- */
       const themeBtn = $("theme");
@@ -442,14 +488,17 @@
       setTheme(document.documentElement.dataset.theme || "light");
       themeBtn.addEventListener("click", () => {
         const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-        try { localStorage.setItem("family.theme", t); } catch {}
+        store.set("family.theme", t);
         setTheme(t);
       });
 
       /* ---------- Дата та повідомлення ---------- */
-      $("today").textContent = new Date().toLocaleDateString("uk-UA", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-      });
+      const renderToday = () => {
+        $("today").textContent = new Date().toLocaleDateString("uk-UA", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric",
+        });
+      };
+      renderToday();
 
       let msgTimer;
       function showMsg(text) {
@@ -461,9 +510,11 @@
       /* ---------- Вхід ---------- */
       let loggedIn = false;
       let tasks = [];
+      let tasksSig = "";
       let personFilter = "all";
       let statusFilter = "all";
       let notes = [];
+      let notesSig = "";
       let noteQuery = "";
       let editingId = null;
 
@@ -495,30 +546,35 @@
 
       sb.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
-          tasks = []; notes = []; editingId = null;
+          tasks = []; notes = []; tasksSig = ""; notesSig = ""; editingId = null;
           renderTasks(); renderNotes(); setAuthUi(false);
         }
       });
 
       /* ---------- Задачі ---------- */
-      $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
+      $("task-person").innerHTML = PEOPLE.map((p) => `<option>${esc(p)}</option>`).join("");
 
-      function renderFilters() {
-        const pItems = ["all", ...PEOPLE];
-        $("filters-person").innerHTML = pItems
-          .map((p) => `<button type="button" class="chip" data-fp="${p}" aria-pressed="${p === personFilter}">${p === "all" ? "Всі люди" : p}</button>`)
-          .join("");
+      const optionsHtml = (items, selected) =>
+        items.map(([v, l]) => `<option value="${esc(v)}"${v === selected ? " selected" : ""}>${esc(l)}</option>`).join("");
 
-        const sItems = [
-          { k: "all", v: "Всі статуси" },
-          { k: "todo", v: "До виконання" },
-          { k: "doing", v: "В роботі" },
-          { k: "done", v: "Готово" }
-        ];
-        $("filters-status").innerHTML = sItems
-          .map((s) => `<button type="button" class="chip" data-fs="${s.k}" aria-pressed="${s.k === statusFilter}">${s.v}</button>`)
-          .join("");
+      function initFilters() {
+        const savedP = store.get("family.fp");
+        const savedS = store.get("family.fs");
+        if (savedP && PEOPLE.includes(savedP)) personFilter = savedP;
+        if (savedS && (savedS === "all" || STATUSES[savedS])) statusFilter = savedS;
+
+        $("filter-person").innerHTML = optionsHtml(
+          [["all", "Всі люди"], ...PEOPLE.map((p) => [p, p])], personFilter);
+        $("filter-status").innerHTML = optionsHtml(
+          [["all", "Всі статуси"], ...Object.entries(STATUSES)], statusFilter);
       }
+
+      $("filter-person").addEventListener("change", (e) => {
+        personFilter = e.target.value; store.set("family.fp", personFilter); renderTasks();
+      });
+      $("filter-status").addEventListener("change", (e) => {
+        statusFilter = e.target.value; store.set("family.fs", statusFilter); renderTasks();
+      });
 
       const taskHtml = (t) => `
         <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
@@ -532,7 +588,7 @@
         </li>`;
 
       function renderTasks() {
-        const visible = tasks.filter((t) => 
+        const visible = tasks.filter((t) =>
           (personFilter === "all" || t.person === personFilter) &&
           (statusFilter === "all" || t.status === statusFilter)
         );
@@ -540,15 +596,12 @@
         const activeTasks = visible
           .filter((t) => t.status !== "done")
           .sort((a, b) => a.priority - b.priority || a.id - b.id);
-          
+
         const doneTasks = visible
           .filter((t) => t.status === "done")
           .sort((a, b) => a.priority - b.priority || b.id - a.id);
 
-        let html = "";
-        if (activeTasks.length) {
-          html += activeTasks.map(taskHtml).join("");
-        }
+        let html = activeTasks.map(taskHtml).join("");
         if (doneTasks.length) {
           if (activeTasks.length) html += `<li class="divider">Виконані</li>`;
           html += doneTasks.map(taskHtml).join("");
@@ -560,6 +613,9 @@
       async function refreshTasks() {
         const { data, error } = await sb.from(T_TASKS).select("*").order("id");
         if (error) { showMsg("Не вдалося завантажити задачі"); return; }
+        const sig = JSON.stringify(data);
+        if (sig === tasksSig) return; // нічого не змінилось
+        tasksSig = sig;
         tasks = data;
         renderTasks();
       }
@@ -576,7 +632,7 @@
           }));
           $("task-text").value = "";
           await refreshTasks();
-        } catch { showMsg("Не вдалося додати задачу"); } 
+        } catch { showMsg("Не вдалося додати задачу"); }
         finally { btn.disabled = false; }
       });
 
@@ -584,6 +640,7 @@
         const btn = e.target.closest("[data-act]");
         if (!btn) return;
         const id = Number(btn.closest(".task").dataset.id);
+        tasksSig = ""; // локальна зміна: наступне оновлення з сервера перемальовує завжди
         try {
           if (btn.dataset.act === "del") {
             tasks = tasks.filter((t) => t.id !== id);
@@ -601,19 +658,7 @@
         }
       });
 
-      $("filters-person").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fp]");
-        if (!b) return; personFilter = b.dataset.fp;
-        renderFilters(); renderTasks();
-      });
-      
-      $("filters-status").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fs]");
-        if (!b) return; statusFilter = b.dataset.fs;
-        renderFilters(); renderTasks();
-      });
-
-      renderFilters(); renderTasks();
+      initFilters(); renderTasks();
 
       /* ---------- Нотатки (список) ---------- */
       function fmtDate(iso) {
@@ -666,6 +711,9 @@
         if (editingId !== null) return;
         const { data, error } = await sb.from(T_NOTES).select("*");
         if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
+        const sig = JSON.stringify(data);
+        if (sig === notesSig) return;
+        notesSig = sig;
         notes = data;
         renderNotes();
       }
@@ -680,7 +728,7 @@
           check(await sb.from(T_NOTES).insert({ body }));
           $("note-text").value = "";
           await refreshNotes();
-        } catch { showMsg("Не вдалося додати нотатку"); } 
+        } catch { showMsg("Не вдалося додати нотатку"); }
         finally { btn.disabled = false; }
       });
 
@@ -699,6 +747,7 @@
         const id = Number(li.dataset.id);
         const n = notes.find((x) => x.id === id);
         const act = btn.dataset.act;
+        notesSig = "";
         try {
           if (act === "pin") {
             n.pinned = !n.pinned; renderNotes();
@@ -733,7 +782,6 @@
         refreshTasks(); refreshNotes();
       }
       setInterval(() => { if (!document.hidden) syncAll(); }, 30000);
-      document.addEventListener("visibilitychange", () => { if (!document.hidden) syncAll(); });
       init();
 
       /* ---------- Погода ---------- */
@@ -744,11 +792,11 @@
       const wsel = $("wmodel");
       wsel.innerHTML = Object.entries(MODELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
       let wmodel = "best_match";
-      try { const s = localStorage.getItem("family.wmodel"); if (s && MODELS[s]) wmodel = s; } catch {}
+      { const s = store.get("family.wmodel"); if (s && MODELS[s]) wmodel = s; }
       wsel.value = wmodel;
       wsel.addEventListener("change", () => {
         wmodel = wsel.value;
-        try { localStorage.setItem("family.wmodel", wmodel); } catch {}
+        store.set("family.wmodel", wmodel);
         loadWeather();
       });
 
@@ -770,9 +818,11 @@
       const windTxt = (v, dir) => v == null ? "—" : `${Math.round(v)} м/с${dir != null ? " " + DIRS[Math.round(dir / 45) % 8] : ""}`;
       const durTxt = (s) => (s == null ? "—" : `${Math.floor(s / 3600)} г ${Math.floor((s % 3600) / 60)} хв`);
 
-      let wdata = null; let wIndex = 0; const dlg = $("day-dlg");
+      let wdata = null; let wIndex = 0; let wLoadedAt = 0; let wReq = 0;
+      const dlg = $("day-dlg");
 
       async function loadWeather() {
+        const req = ++wReq; // ігноруємо застарілі відповіді при швидкій зміні моделі
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,` +
           `precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,daylight_duration,sunrise,sunset` +
@@ -781,7 +831,10 @@
         try {
           const r = await fetch(url);
           if (!r.ok) throw new Error(r.status);
-          wdata = await r.json(); const d = wdata.daily;
+          const json = await r.json();
+          if (req !== wReq) return;
+          wdata = json; wLoadedAt = Date.now();
+          const d = wdata.daily;
           $("weather").innerHTML = d.time.map((date, i) => {
             const [ico, desc] = WMO(d.weather_code[i]);
             const name = i === 0 ? "Сьогодні" : new Date(date + "T12:00").toLocaleDateString("uk-UA", { weekday: "short", day: "numeric" });
@@ -804,6 +857,7 @@
           $("w-src").textContent = `Джерело: Open-Meteo · модель: ${MODELS[wmodel]} · ↑ схід, ↓ захід · натисніть на день для деталей`;
           if (dlg.open) openDay(wIndex);
         } catch {
+          if (req !== wReq) return;
           wdata = null;
           $("weather").innerHTML = `<li class="muted">Не вдалося завантажити погоду. Оновіть сторінку.</li>`;
           $("w-src").textContent = "";
@@ -841,8 +895,10 @@
         });
 
         $("dlg-body").innerHTML = `
-          <p class="dlg-sum">${ico} ${desc}</p>
-          <div class="stats">${stats.map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("")}</div>
+          <div class="dlg-side">
+            <p class="dlg-sum">${ico} ${desc}</p>
+            <div class="stats">${stats.map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("")}</div>
+          </div>
           <ul class="hours">${rows.join("")}</ul>`;
         if (!dlg.open) dlg.showModal();
         const box = $("dlg-body").querySelector(".hours"); const cur = box.querySelector(".hr.now");
@@ -856,6 +912,15 @@
       dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
 
       loadWeather();
+
+      /* ---------- Оновлення при поверненні на вкладку ---------- */
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) return;
+        syncAll();
+        renderToday();
+        if (Date.now() - wLoadedAt > 15 * 60 * 1000) loadWeather();
+      });
+      setInterval(() => { if (!document.hidden) loadWeather(); }, 30 * 60 * 1000);
     </script>
   </body>
 </html>
