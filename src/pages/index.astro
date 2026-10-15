@@ -173,9 +173,10 @@
       h2 { font-size: 18px; margin-bottom: 10px; }
 
       .top { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-      .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
-      .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .tools p { margin: 0; color: var(--muted); font-size: 14px; }
+      .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: nowrap; }
+      .top-row h1 { flex-shrink: 0; }
+      .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; flex-wrap: nowrap; }
+      .tools p { margin: 0; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
       .tools .net { color: var(--p1); font-weight: 600; }
       .mobile-tabs { display: none; }
 
@@ -240,7 +241,7 @@
       .icon {
         display: inline-flex; align-items: center; justify-content: center;
         width: 34px; height: 34px; padding: 0; flex-shrink: 0;
-        background: transparent; border: 1px solid var(--line); border-radius: 999px;
+        background: transparent; border: 1px solid var(--line); border-radius: 6px;
         color: var(--ink); cursor: pointer;
       }
       .icon:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
@@ -475,9 +476,16 @@
       });
 
       /* ---------- Дата та повідомлення ---------- */
-      $("today").textContent = new Date().toLocaleDateString("uk-UA", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-      });
+      /* Дата: повна на десктопі, коротка на вузьких екранах —
+         щоб все вміщалось в один рядок з заголовком */
+      function renderToday() {
+        const d = new Date();
+        $("today").textContent = window.innerWidth < 960
+          ? d.toLocaleDateString("uk-UA", { weekday: "short", day: "numeric", month: "short" })
+          : d.toLocaleDateString("uk-UA", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      }
+      renderToday();
+      window.addEventListener("resize", renderToday);
 
       let msgTimer;
       function showMsg(text) {
