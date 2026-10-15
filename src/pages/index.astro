@@ -23,13 +23,7 @@
   <body>
     <header class="top">
       <div class="top-row">
-        <h1>Сімейний хаб</h1>
-        <!-- Вкладки, які видно лише на мобільних -->
-        <nav class="mobile-tabs">
-          <button class="tab-btn active" data-target="col-tasks">Задачі</button>
-          <button class="tab-btn" data-target="col-notes">Нотатки</button>
-          <button class="tab-btn" data-target="col-weather">Погода</button>
-        </nav>
+        <h1>Сімейний хуб</h1>
         <div class="tools">
           <p id="today"></p>
           <p id="net" class="net" hidden>Офлайн</p>
@@ -42,6 +36,12 @@
           </button>
         </div>
       </div>
+      <!-- Вкладки, які видно лише на мобільних -->
+      <nav class="mobile-tabs">
+        <button class="tab-btn active" data-target="col-tasks">Задачі</button>
+        <button class="tab-btn" data-target="col-notes">Нотатки</button>
+        <button class="tab-btn" data-target="col-weather">Погода</button>
+      </nav>
     </header>
     <p id="msg" class="msg" role="status"></p>
 
@@ -424,19 +424,14 @@
       /* --- Мобільна оптимізація --- */
       @media (max-width: 960px) {
         body { padding: 12px; }
-        /* Вкладки — поруч із заголовком; дата й іконки — другим рядком */
-        .top-row { flex-wrap: wrap; }
-        h1 { font-size: 19px; }
-        .tools { flex-shrink: 0; }
         .mobile-tabs {
-          display: flex; flex: 1 1 auto; min-width: 0;
-          background: var(--surface); padding: 3px;
-          border-radius: 8px; border: 1px solid var(--line); gap: 3px;
+          display: flex; background: var(--surface); padding: 4px;
+          border-radius: 8px; border: 1px solid var(--line); gap: 4px; flex-shrink: 0;
         }
         .tab-btn {
-          flex: 1; background: transparent; border: none; padding: 7px 0;
+          flex: 1; background: transparent; border: none; padding: 8px 0;
           border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600;
-          color: var(--muted); font-size: 13.5px; transition: background-color 0.2s, color 0.2s;
+          color: var(--muted); font-size: 14px; transition: background-color 0.2s, color 0.2s;
         }
         .tab-btn.active { background: var(--field); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
@@ -456,12 +451,15 @@
       @media (max-width: 960px) and (orientation: landscape) {
         body { padding: 6px 10px; gap: 6px; }
 
-        /* Заголовок + вкладки + іконки — один рядок */
-        .top-row { flex-wrap: nowrap; }
-        h1 { font-size: 16px; }
+        /* Заголовок + вкладки + іконки — один рядок:
+           порядок: заголовок → вкладки → іконки теми/виходу */
+        .top { flex-direction: row; align-items: center; gap: 8px; }
+        .top-row { display: contents; }
+        .top-row h1 { order: 1; font-size: 16px; }
+        .mobile-tabs { order: 2; flex: 1; padding: 2px; }
+        .tools { order: 3; flex-shrink: 0; }
         #today { display: none; } /* дата не влазить — місце для контенту */
         .icon { width: 26px; height: 26px; }
-        .mobile-tabs { flex: 1; padding: 2px; }
         .tab-btn { padding: 4px 0; font-size: 13px; }
 
         .col { padding: 8px 10px; }
