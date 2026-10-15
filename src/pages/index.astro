@@ -23,7 +23,7 @@
   <body>
     <header class="top">
       <div class="top-row">
-        <h1>Сімейний хаб</h1>
+        <h1>Сімейний хуб</h1>
         <div class="tools">
           <p id="today"></p>
           <p id="net" class="net" hidden>Офлайн</p>
@@ -158,7 +158,10 @@
       }
       * { box-sizing: border-box; }
 
-      html, body { height: 100%; height: 100dvh; overflow: hidden; }
+      /* overflow: hidden прибраний — він блокував pull-to-refresh (оновлення
+         свайпом) на мобільних. Внутрішні списки все одно скроляться самі,
+         а розміри фіксує 100dvh + flex-верстка */
+      html, body { height: 100%; height: 100dvh; }
       body {
         margin: 0;
         padding: 10px 20px 16px;
@@ -712,7 +715,7 @@
 
         /* Лічильник активних задач у заголовку вкладки */
         const n = tasks.filter((t) => t.status !== "done").length;
-        document.title = (n ? `(${n}) ` : "") + "Сімейний хаб";
+        document.title = (n ? `(${n}) ` : "") + "Сімейний хуб";
 
         /* Пропускаємо перерисовку, якщо нічого не змінилось —
            зберігаємо позицію скролу між фоновими оновленнями */
