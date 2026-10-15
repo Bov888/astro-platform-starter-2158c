@@ -370,7 +370,9 @@
         background: none; text-align: left; cursor: pointer;
       }
       .day:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-      .day .mid, .day .end { display: flex; flex-direction: column; line-height: 1.3; }
+      .day .mid { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+      .day .desc, .day .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .day .end { display: flex; flex-direction: column; line-height: 1.3; }
       .day .end { align-items: flex-end; }
       .day .name { font-weight: 600; font-size: 14px; }
       .day .ico { font-size: 22px; text-align: center; }
@@ -434,27 +436,60 @@
       }
 
       /* --- Альбомна орієнтація (телефон лежить) ---
-         вкладки вгорі, активна секція на весь екран,
-         компактні відступи під невелику висоту екрана */
+         Екран широкий, але дуже низький, тому:
+         1) заголовок і вкладки — в ОДНОМУ рядку;
+         2) форми — в один рядок;
+         3) погода — у два стовпці, щоб всі 7 днів вмістились */
       @media (max-width: 960px) and (orientation: landscape) {
-        body { padding: 8px 12px; gap: 6px; }
-        h1 { font-size: 17px; }
-        .top { gap: 6px; }
-        .tools p { font-size: 12px; }
-        .icon { width: 28px; height: 28px; }
-        .mobile-tabs { padding: 2px; }
-        .tab-btn { padding: 5px 0; font-size: 13px; }
-        .col { padding: 10px 12px; }
-        .task-form { gap: 6px; margin-bottom: 6px; }
-        .filters-group { margin-bottom: 8px; gap: 6px; }
+        body { padding: 6px 10px; gap: 6px; }
+
+        /* Заголовок + вкладки + іконки — один рядок */
+        .top { flex-direction: row; align-items: center; gap: 10px; flex-wrap: nowrap; }
+        .top-row { width: auto; flex-shrink: 0; }
+        h1 { font-size: 16px; }
+        #today { display: none; } /* дата не влазить — місце для контенту */
+        .icon { width: 26px; height: 26px; }
+        .mobile-tabs { flex: 1; padding: 2px; }
+        .tab-btn { padding: 4px 0; font-size: 13px; }
+
+        .col { padding: 8px 10px; }
         input, select, textarea { padding: 5px 8px; }
         select { padding-right: 30px; }
-        .btn { padding: 5px 12px; }
-        .task { padding: 6px 10px; margin-bottom: 6px; }
-        .note-form { margin-bottom: 6px; gap: 6px; }
-        .note-form textarea { min-height: 48px; }
-        .note { padding: 8px 10px; margin-bottom: 6px; }
-        .weather { grid-auto-rows: minmax(34px, 1fr); }
+        .btn { padding: 5px 10px; }
+
+        /* Форма задач в один рядок: [задача][кому][пріоритет][Додати] */
+        .task-form { flex-direction: row; flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; }
+        .task-form .row { display: contents; }
+        .task-form .row input { order: 1; flex: 2 1 0; }
+        #task-person { order: 2; }
+        #task-priority { order: 3; }
+        .task-form .btn { order: 4; flex-shrink: 0; }
+        .filters-group { margin-bottom: 6px; gap: 6px; }
+
+        /* Нотатки: поле і кнопка в один рядок */
+        .note-form { flex-direction: row; flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; align-items: stretch; }
+        .note-form textarea { flex: 1; min-height: 36px; }
+        .note-form .btn { align-self: stretch; flex-shrink: 0; }
+        #note-search { margin-bottom: 4px; }
+        #notes-count { margin: 0 0 4px; min-height: 0; }
+
+        .task { padding: 5px 10px; margin-bottom: 5px; }
+        .note { padding: 6px 10px; margin-bottom: 5px; }
+        .note-meta { margin-top: 4px; }
+
+        /* Погода у два стовпці: 7 днів = 4 рядки замість 7 */
+        .weather {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-auto-rows: minmax(38px, auto);
+          gap: 0 10px;
+          align-content: start;
+          overflow-y: auto;
+        }
+        .weather > li { border-bottom: 1px solid var(--line); }
+        .weather > li:nth-last-child(-n+2) { border-bottom: 0; }
+        #w-src { display: none; }
+
         /* Діалог деталей погоди — компактніше */
         dialog.dlg { max-height: calc(100dvh - 16px); }
         .dlg-head { padding: 8px 12px; }
