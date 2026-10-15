@@ -434,17 +434,17 @@
       }
 
       /* --- Альбомна орієнтація (телефон лежить) ---
-         екран широкий, тому показуємо всі три колонки, як на десктопі,
-         але з компактними відступами під невелику висоту */
+         вкладки вгорі, активна секція на весь екран,
+         компактні відступи під невелику висоту екрана */
       @media (max-width: 960px) and (orientation: landscape) {
         body { padding: 8px 12px; gap: 6px; }
         h1 { font-size: 17px; }
         .top { gap: 6px; }
         .tools p { font-size: 12px; }
         .icon { width: 28px; height: 28px; }
-        .mobile-tabs { display: none; }
-        .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-        .col { display: flex; position: static; width: auto; inset: auto; padding: 10px 12px; }
+        .mobile-tabs { padding: 2px; }
+        .tab-btn { padding: 5px 0; font-size: 13px; }
+        .col { padding: 10px 12px; }
         .task-form { gap: 6px; margin-bottom: 6px; }
         .filters-group { margin-bottom: 8px; gap: 6px; }
         input, select, textarea { padding: 5px 8px; }
