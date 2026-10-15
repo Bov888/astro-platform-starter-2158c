@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Родинна дошка</title>
+    <title>Сімейний хаб</title>
     <script is:inline>
       (function () {
         var t = null;
@@ -23,12 +23,17 @@
   <body>
     <header class="top">
       <div class="top-row">
-        <h1>Родинна дошка</h1>
+        <h1>Сімейний хаб</h1>
         <div class="tools">
           <p id="today"></p>
           <p id="net" class="net" hidden>Офлайн</p>
-          <button id="theme" type="button" class="ghost"></button>
-          <button id="logout" type="button" class="ghost" hidden>Вийти</button>
+          <button id="theme" type="button" class="icon" aria-label="Перемкнути тему">
+            <svg class="ico-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="ico-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+          <button id="logout" type="button" class="icon" hidden aria-label="Вийти">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </div>
       <!-- Вкладки, які видно лише на мобільних -->
@@ -232,6 +237,17 @@
       }
       .ghost:disabled { opacity: .4; cursor: default; }
       .ghost[hidden] { display: none; }
+      .icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px; padding: 0; flex-shrink: 0;
+        background: transparent; border: 1px solid var(--line); border-radius: 999px;
+        color: var(--ink); cursor: pointer;
+      }
+      .icon:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .icon[hidden] { display: none; }
+      .icon svg { display: block; }
+      :root:not([data-theme="dark"]) .ico-sun { display: none; }
+      :root[data-theme="dark"] .ico-moon { display: none; }
       .link {
         background: none; border: 0; padding: 4px 0; color: var(--muted);
         cursor: pointer; font-size: 12.5px; text-decoration: underline;
@@ -447,7 +463,9 @@
       const themeBtn = $("theme");
       const setTheme = (t) => {
         document.documentElement.dataset.theme = t;
-        themeBtn.textContent = t === "dark" ? "Світла тема" : "Темна тема";
+        const label = t === "dark" ? "Світла тема" : "Темна тема";
+        themeBtn.setAttribute("aria-label", label);
+        themeBtn.title = label;
       };
       setTheme(document.documentElement.dataset.theme || "light");
       themeBtn.addEventListener("click", () => {
@@ -585,7 +603,7 @@
 
         /* Лічильник активних задач у заголовку вкладки */
         const n = tasks.filter((t) => t.status !== "done").length;
-        document.title = (n ? `(${n}) ` : "") + "Родинна дошка";
+        document.title = (n ? `(${n}) ` : "") + "Сімейний хуб";
 
         /* Пропускаємо перерисовку, якщо нічого не змінилось —
            зберігаємо позицію скролу між фоновими оновленнями */
