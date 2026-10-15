@@ -21,6 +21,7 @@
     <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
   </head>
   <body>
+    <div id="app">
     <header class="top">
       <div class="top-row">
         <h1>Сімейний хуб</h1>
@@ -95,6 +96,7 @@
         <p id="w-src" class="muted small"></p>
       </section>
     </main>
+    </div>
 
     <!-- Деталі дня -->
     <dialog id="day-dlg" class="dlg" aria-labelledby="dlg-title">
@@ -161,18 +163,24 @@
       }
       * { box-sizing: border-box; }
 
-      /* overflow: hidden — щоб не скролилась вся сторінка (тільки списки всередині).
-         Для оновлення даних — кнопка оновлення в шапці */
-      html, body { height: 100%; height: 100dvh; overflow: hidden; }
+      /* Скрол заблокований на обгортці #app, а не на документі —
+         тому сторінка не скролиться, але pull-to-refresh (оновлення
+         свайпом) у браузері працює */
+      html { height: 100%; }
       body {
         margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 400 15px/1.45 "Onest", system-ui, sans-serif;
+      }
+      #app {
+        height: 100%;
+        height: 100dvh;
         padding: 10px 20px 16px;
         display: flex;
         flex-direction: column;
         gap: 10px;
-        background: var(--bg);
-        color: var(--ink);
-        font: 400 15px/1.45 "Onest", system-ui, sans-serif;
+        overflow: hidden;
       }
       body:has(dialog[open]) { overflow: hidden; }
       h1, h2, h3 { font-family: "Literata", Georgia, serif; margin: 0; }
@@ -430,7 +438,7 @@
 
       /* --- Мобільна оптимізація --- */
       @media (max-width: 960px) {
-        body { padding: 12px; }
+        #app { padding: 12px; }
         .mobile-tabs {
           display: flex; background: var(--surface); padding: 4px;
           border-radius: 8px; border: 1px solid var(--line); gap: 4px; flex-shrink: 0;
@@ -456,7 +464,7 @@
          2) форми — в один рядок;
          3) погода — у два стовпці, щоб всі 7 днів вмістились */
       @media (max-width: 960px) and (orientation: landscape) {
-        body { padding: 6px 10px; gap: 6px; }
+        #app { padding: 6px 10px; gap: 6px; }
 
         /* Заголовок + вкладки + іконки — один рядок:
            порядок: заголовок → вкладки → іконки теми/виходу */
