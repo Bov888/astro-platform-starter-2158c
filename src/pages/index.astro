@@ -49,7 +49,10 @@
       <!-- 1. Задачі -->
       <section id="col-tasks" class="col active">
         <form id="task-form" class="task-form">
-          <input id="task-text" type="text" placeholder="Нова задача" required maxlength="140" />
+          <div class="row">
+            <input id="task-text" type="text" placeholder="Нова задача" required maxlength="140" />
+            <button type="submit" class="btn">Додати</button>
+          </div>
           <div class="row">
             <select id="task-person" aria-label="Кому"></select>
             <select id="task-priority" aria-label="Пріоритет">
@@ -57,7 +60,6 @@
               <option value="2" selected>Середній</option>
               <option value="3">Низький</option>
             </select>
-            <button type="submit" class="btn">Додати</button>
           </div>
         </form>
 
@@ -273,10 +275,12 @@
       /* Задачі */
       .task-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
       .task-form .row { display: flex; gap: 8px; }
+      .task-form .row input { flex: 1; min-width: 0; }
+      .task-form .btn { flex-shrink: 0; }
       .task-form select { flex: 1; min-width: 0; }
 
       .filters-group { display: flex; gap: 8px; margin-bottom: 12px; }
-      .filters-group select { flex: 1; min-width: 0; font-size: 13.5px; padding: 6px 8px; }
+      .filters-group select { flex: 1; min-width: 0; }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .task {
