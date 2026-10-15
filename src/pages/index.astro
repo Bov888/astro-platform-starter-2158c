@@ -24,6 +24,12 @@
     <header class="top">
       <div class="top-row">
         <h1>Сімейний хаб</h1>
+        <!-- Вкладки, які видно лише на мобільних -->
+        <nav class="mobile-tabs">
+          <button class="tab-btn active" data-target="col-tasks">Задачі</button>
+          <button class="tab-btn" data-target="col-notes">Нотатки</button>
+          <button class="tab-btn" data-target="col-weather">Погода</button>
+        </nav>
         <div class="tools">
           <p id="today"></p>
           <p id="net" class="net" hidden>Офлайн</p>
@@ -36,12 +42,6 @@
           </button>
         </div>
       </div>
-      <!-- Вкладки, які видно лише на мобільних -->
-      <nav class="mobile-tabs">
-        <button class="tab-btn active" data-target="col-tasks">Задачі</button>
-        <button class="tab-btn" data-target="col-notes">Нотатки</button>
-        <button class="tab-btn" data-target="col-weather">Погода</button>
-      </nav>
     </header>
     <p id="msg" class="msg" role="status"></p>
 
@@ -209,7 +209,13 @@
       }
       .col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
       .col-head h2 { margin: 0; }
-      .col-head select { font-size: 13px; padding: 4px 8px; }
+      .col-head select {
+        font-size: 12.5px;
+        padding: 4px 28px 4px 8px;
+        min-width: 0;
+        flex-shrink: 1;
+        max-width: 60%;
+      }
 
       input, select, textarea, button { font: inherit; color: inherit; }
       input, select, textarea {
@@ -328,8 +334,10 @@
       .empty { color: var(--muted); padding: 8px 0; }
 
       .divider {
+        position: sticky; top: 0; z-index: 1;
+        background: var(--surface);
         text-align: center; font-size: 12px; color: var(--muted);
-        margin: 16px 0 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        margin: 12px 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
       }
       .divider::before, .divider::after {
         content: ""; display: inline-block; width: 30px; height: 1px;
@@ -416,14 +424,19 @@
       /* --- Мобільна оптимізація --- */
       @media (max-width: 960px) {
         body { padding: 12px; }
+        /* Вкладки — поруч із заголовком; дата й іконки — другим рядком */
+        .top-row { flex-wrap: wrap; }
+        h1 { font-size: 19px; }
+        .tools { flex-shrink: 0; }
         .mobile-tabs {
-          display: flex; background: var(--surface); padding: 4px;
-          border-radius: 8px; border: 1px solid var(--line); gap: 4px; flex-shrink: 0;
+          display: flex; flex: 1 1 auto; min-width: 0;
+          background: var(--surface); padding: 3px;
+          border-radius: 8px; border: 1px solid var(--line); gap: 3px;
         }
         .tab-btn {
-          flex: 1; background: transparent; border: none; padding: 8px 0;
+          flex: 1; background: transparent; border: none; padding: 7px 0;
           border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600;
-          color: var(--muted); font-size: 14px; transition: background-color 0.2s, color 0.2s;
+          color: var(--muted); font-size: 13.5px; transition: background-color 0.2s, color 0.2s;
         }
         .tab-btn.active { background: var(--field); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
@@ -444,8 +457,7 @@
         body { padding: 6px 10px; gap: 6px; }
 
         /* Заголовок + вкладки + іконки — один рядок */
-        .top { flex-direction: row; align-items: center; gap: 10px; flex-wrap: nowrap; }
-        .top-row { width: auto; flex-shrink: 0; }
+        .top-row { flex-wrap: nowrap; }
         h1 { font-size: 16px; }
         #today { display: none; } /* дата не влазить — місце для контенту */
         .icon { width: 26px; height: 26px; }
@@ -517,7 +529,7 @@
          Інакше будь-хто з ключем зможе читати й стирити всі дані. */
 
       const PRIORITIES = { 1: "Високий", 2: "Середній", 3: "Низький" };
-      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Готово" };
+      const STATUSES = { todo: "До виконання", doing: "В роботі", done: "Виконано" };
       const NEXT = { todo: "doing", doing: "done", done: "todo" };
       const T_TASKS = "family_tasks";
       const T_NOTES = "family_note_items";
@@ -657,7 +669,7 @@
         ["all", "Всі статуси"],
         ["todo", "До виконання"],
         ["doing", "В роботі"],
-        ["done", "Готово"],
+        ["done", "Виконані"],
       ].map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
       fpSel.addEventListener("change", () => { personFilter = fpSel.value; renderTasks(); });
       fsSel.addEventListener("change", () => { statusFilter = fsSel.value; renderTasks(); });
