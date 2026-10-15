@@ -42,9 +42,7 @@
 
     <main class="board">
       <!-- 1. Задачі -->
-      <section id="col-tasks" class="col active" aria-labelledby="h-tasks">
-        <h2 id="h-tasks">Задачі</h2>
-
+      <section id="col-tasks" class="col active">
         <form id="task-form" class="task-form">
           <input id="task-text" type="text" placeholder="Нова задача" required maxlength="140" />
           <div class="row">
@@ -59,16 +57,14 @@
         </form>
 
         <div class="filters-group">
-          <div id="filters-person" class="filters" role="group" aria-label="Фільтр за людиною"></div>
-          <div id="filters-status" class="filters" role="group" aria-label="Фільтр за статусом"></div>
+          <select id="filter-person" aria-label="Фільтр за людиною"></select>
+          <select id="filter-status" aria-label="Фільтр за статусом"></select>
         </div>
         <ul id="task-list" class="task-list"></ul>
       </section>
 
       <!-- 2. Нотатки -->
-      <section id="col-notes" class="col" aria-labelledby="h-notes">
-        <h2 id="h-notes">Нотатки</h2>
-
+      <section id="col-notes" class="col">
         <form id="note-form" class="note-form">
           <textarea id="note-text" rows="3" maxlength="5000" placeholder="Нова нотатка…" aria-label="Нова нотатка" required></textarea>
           <button type="submit" class="btn">Додати</button>
@@ -262,13 +258,8 @@
       .task-form .row { display: flex; gap: 8px; }
       .task-form select { flex: 1; min-width: 0; }
 
-      .filters-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-      .filters { display: flex; flex-wrap: wrap; gap: 6px; }
-      .chip {
-        border: 1px solid var(--line); background: transparent;
-        border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13px;
-      }
-      .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+      .filters-group { display: flex; gap: 8px; margin-bottom: 12px; }
+      .filters-group select { flex: 1; min-width: 0; font-size: 13.5px; padding: 6px 8px; }
 
       .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
       .task {
@@ -539,30 +530,20 @@
       /* ---------- Задачі ---------- */
       $("task-person").innerHTML = PEOPLE.map((p) => `<option>${p}</option>`).join("");
 
-      function renderFilters() {
-        const pItems = ["all", ...PEOPLE];
-        $("filters-person").innerHTML = pItems
-          .map((p) => `<button type="button" class="chip" data-fp="${p}" aria-pressed="${p === personFilter}">${p === "all" ? "Всі люди" : p}</button>`)
-          .join("");
-
-        const sItems = [
-          { k: "all", v: "Всі статуси" },
-          { k: "todo", v: "До виконання" },
-          { k: "doing", v: "В роботі" },
-          { k: "done", v: "Готово" }
-        ];
-        $("filters-status").innerHTML = sItems
-          .map((s) => `<button type="button" class="chip" data-s="${s.k}" aria-pressed="${s.k === statusFilter}">${s.v}</button>`)
-          .join("");
-      }
-
-      /* Перемикання фільтрів без перебудови DOM — просто aria-pressed */
-      function updateFilterChips() {
-        document.querySelectorAll("#filters-person .chip")
-          .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fp === personFilter)));
-        document.querySelectorAll("#filters-status .chip")
-          .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === statusFilter)));
-      }
+      /* Фільтри — випадаючі списки */
+      const fpSel = $("filter-person");
+      const fsSel = $("filter-status");
+      fpSel.innerHTML = ["all", ...PEOPLE]
+        .map((p) => `<option value="${p}">${p === "all" ? "Всі люди" : p}</option>`)
+        .join("");
+      fsSel.innerHTML = [
+        ["all", "Всі статуси"],
+        ["todo", "До виконання"],
+        ["doing", "В роботі"],
+        ["done", "Готово"],
+      ].map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+      fpSel.addEventListener("change", () => { personFilter = fpSel.value; renderTasks(); });
+      fsSel.addEventListener("change", () => { statusFilter = fsSel.value; renderTasks(); });
 
       const taskHtml = (t) => `
         <li class="task" data-id="${t.id}" data-p="${t.priority}" data-s="${t.status}">
@@ -617,8 +598,11 @@
         list.scrollTop = st;
       }
 
-      async function refreshTasks() {
-        if (pending) return; /* не затираємо optimistic-зміни */
+      async function refreshTasks(force = false) {
+        /* force — оновлення після власної дії користувача (додати/змінити);
+           без force — фонове оновлення, яке не затирає optimistic-зміни,
+           поки мутація ще в процесі */
+        if (!force && pending) return;
         const { data, error } = await sb.from(T_TASKS).select("*").order("id");
         if (error) { showMsg("Не вдалося завантажити задачі"); return; }
         tasks = data;
@@ -640,7 +624,7 @@
             status: "todo", /* явно, щоб не залежати від default у БД */
           }));
           $("task-text").value = "";
-          await refreshTasks();
+          await refreshTasks(true);
         } catch { showMsg("Не вдалося додати задачу"); }
         finally { pending--; btn.disabled = false; }
       });
@@ -662,26 +646,12 @@
             check(await sb.from(T_TASKS).update({ status: t.status }).eq("id", id));
           }
         } catch {
-          await refreshTasks();
+          await refreshTasks(true);
           showMsg("Не вдалося зберегти зміну");
         } finally { pending--; }
       });
 
-      $("filters-person").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-fp]");
-        if (!b) return;
-        personFilter = b.dataset.fp;
-        updateFilterChips(); renderTasks();
-      });
-
-      $("filters-status").addEventListener("click", (e) => {
-        const b = e.target.closest("[data-s]");
-        if (!b) return;
-        statusFilter = b.dataset.s;
-        updateFilterChips(); renderTasks();
-      });
-
-      renderFilters(); renderTasks();
+      renderTasks();
 
       /* ---------- Нотатки (список) ---------- */
       function fmtDate(iso) {
@@ -745,8 +715,8 @@
         el.scrollTop = st;
       }
 
-      async function refreshNotes() {
-        if (editingId !== null || pending) return;
+      async function refreshNotes(force = false) {
+        if (!force && (editingId !== null || pending)) return;
         const { data, error } = await sb.from(T_NOTES).select("*");
         if (error) { showMsg("Не вдалося завантажити нотатки"); return; }
         notes = data;
@@ -763,7 +733,7 @@
         try {
           check(await sb.from(T_NOTES).insert({ body }));
           $("note-text").value = "";
-          await refreshNotes();
+          await refreshNotes(true);
         } catch { showMsg("Не вдалося додати нотатку"); }
         finally { pending--; btn.disabled = false; }
       });
@@ -798,7 +768,7 @@
             const body = li.querySelector(".edit-text").value.trim();
             if (!body) return;
             check(await sb.from(T_NOTES).update({ body, updated_at: new Date().toISOString() }).eq("id", id));
-            editingId = null; await refreshNotes();
+            editingId = null; await refreshNotes(true);
           } else if (act === "del") {
             if (!confirm("Видалити нотатку?")) return;
             notes = notes.filter((x) => x.id !== id); renderNotes();
@@ -810,7 +780,7 @@
             showMsg("Не вдалося зберегти нотатку — спробуйте ще раз");
           } else {
             showMsg("Не вдалося зберегти зміну");
-            await refreshNotes();
+            await refreshNotes(true);
           }
         } finally { pending--; }
       });
